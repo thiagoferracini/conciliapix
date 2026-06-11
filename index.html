@@ -1,0 +1,2792 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ConciliaPIX</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap');
+
+:root {
+  --bg: #F2F0EA;
+  --surface: #FAFAF7;
+  --surface2: #EDECE6;
+  --border: rgba(0,0,0,.1);
+  --border2: rgba(0,0,0,.16);
+  --ink: #18170F;
+  --ink2: #5C5A50;
+  --ink3: #9C9A8E;
+  --green: #1A5C35;
+  --green-bg: #E8F5EE;
+  --green-pill: #D1EDD9;
+  --red: #8C1F1F;
+  --red-bg: #FAECEC;
+  --red-pill: #F0CECE;
+  --amber: #7A4A00;
+  --amber-bg: #FFF4E0;
+  --amber-pill: #FCDFA8;
+  --accent: #1A5C35;
+  --mono: 'JetBrains Mono', monospace;
+  --sans: 'Instrument Sans', sans-serif;
+  --serif: 'Instrument Serif', serif;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 14px; }
+body {
+  font-family: var(--sans);
+  background: var(--bg);
+  color: var(--ink);
+  min-height: 100vh;
+  line-height: 1.5;
+}
+
+/* ── LAYOUT ── */
+.shell { display: flex; min-height: 100vh; }
+
+/* ── SIDEBAR ── */
+.sidebar {
+  width: 200px;
+  flex-shrink: 0;
+  background: var(--ink);
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  top: 0; left: 0; bottom: 0;
+  z-index: 100;
+}
+.sidebar-top {
+  padding: 24px 20px 20px;
+  border-bottom: 1px solid rgba(255,255,255,.08);
+}
+.sidebar-brand {
+  font-family: var(--serif);
+  font-size: 20px;
+  color: #fff;
+  letter-spacing: -.01em;
+  line-height: 1;
+}
+.sidebar-brand em {
+  font-style: italic;
+  color: #6ECC90;
+}
+.sidebar-date {
+  font-size: 11px;
+  color: rgba(255,255,255,.35);
+  margin-top: 5px;
+  font-family: var(--mono);
+}
+nav { padding: 12px 10px; flex: 1; }
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  color: rgba(255,255,255,.45);
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 2px;
+  transition: all .15s;
+  user-select: none;
+}
+.nav-item:hover { background: rgba(255,255,255,.06); color: rgba(255,255,255,.8); }
+.nav-item.active { background: rgba(110,204,144,.15); color: #6ECC90; }
+.nav-icon { font-size: 15px; width: 18px; text-align: center; flex-shrink: 0; }
+.nav-badge {
+  margin-left: auto;
+  font-family: var(--mono);
+  font-size: 10px;
+  padding: 1px 7px;
+  border-radius: 10px;
+  background: rgba(255,255,255,.1);
+}
+.nav-item.active .nav-badge { background: rgba(110,204,144,.2); color: #6ECC90; }
+.nav-badge.alert { background: rgba(220,80,80,.25); color: #F08080; }
+
+.sidebar-footer {
+  padding: 12px 20px;
+  border-top: 1px solid rgba(255,255,255,.08);
+}
+.sidebar-footer button {
+  width: 100%;
+  padding: 7px 0;
+  background: transparent;
+  border: 1px solid rgba(255,255,255,.15);
+  border-radius: 7px;
+  color: rgba(255,255,255,.4);
+  font-size: 11px;
+  font-family: var(--sans);
+  cursor: pointer;
+  transition: all .15s;
+}
+.sidebar-footer button:hover { border-color: rgba(255,255,255,.3); color: rgba(255,255,255,.7); }
+
+/* ── MAIN ── */
+.main { margin-left: 200px; flex: 1; display: flex; flex-direction: column; min-height: 100vh; }
+
+/* ── TOPBAR ── */
+.topbar {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 12px 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+.topbar-left { display: flex; align-items: center; gap: 12px; }
+.topbar-title { font-size: 15px; font-weight: 600; }
+.topbar-sub { font-size: 12px; color: var(--ink3); }
+.topbar-right { display: flex; gap: 8px; align-items: center; }
+.conn-dot { font-size: 11px; color: var(--green); font-family: var(--mono); }
+
+/* ── PAGES ── */
+.page { display: none; padding: 24px 28px; }
+.page.active { display: block; }
+
+/* ── BUTTONS ── */
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 16px; border-radius: 8px; font-size: 13px;
+  font-weight: 500; font-family: var(--sans); cursor: pointer;
+  border: 1px solid var(--border2); background: var(--surface);
+  color: var(--ink); transition: all .15s; white-space: nowrap;
+}
+.btn:hover { background: var(--surface2); }
+.btn:disabled { opacity: .4; cursor: not-allowed; }
+.btn.primary { background: var(--ink); color: #fff; border-color: var(--ink); }
+.btn.primary:hover { background: #2a2920; }
+.btn.green { background: var(--green); color: #fff; border-color: var(--green); }
+.btn.green:hover { background: #144d2b; }
+.btn.sm { padding: 6px 12px; font-size: 12px; }
+.btn.xs { padding: 4px 10px; font-size: 11px; }
+.btn.full { width: 100%; justify-content: center; }
+
+/* ── IMPORT ZONE ── */
+.import-zone {
+  border: 1.5px dashed var(--border2);
+  border-radius: 12px;
+  padding: 24px;
+  text-align: center;
+  cursor: pointer;
+  transition: all .2s;
+  background: var(--surface);
+  position: relative;
+  margin-bottom: 20px;
+}
+.import-zone:hover, .import-zone.over { border-color: var(--accent); background: var(--green-bg); }
+.import-zone input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+.import-zone-icon { font-size: 28px; margin-bottom: 6px; }
+.import-zone-text { font-size: 13px; font-weight: 500; color: var(--ink2); }
+.import-zone-sub { font-size: 11px; color: var(--ink3); margin-top: 3px; }
+
+/* ── SUMMARY STRIP ── */
+.summary-strip {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-bottom: 20px;
+}
+.summary-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 16px;
+}
+.summary-card .lbl { font-size: 10px; font-weight: 600; letter-spacing: .07em; text-transform: uppercase; color: var(--ink3); margin-bottom: 4px; }
+.summary-card .val { font-size: 22px; font-weight: 600; color: var(--ink); line-height: 1; }
+.summary-card .sub { font-size: 11px; color: var(--ink3); margin-top: 3px; font-family: var(--mono); }
+.summary-card.ok .val { color: var(--green); }
+.summary-card.bad .val { color: var(--red); }
+.summary-card.warn .val { color: var(--amber); }
+
+/* ── ACTION LIST ── */
+.action-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 12px; flex-wrap: wrap; gap: 8px;
+}
+.action-title { font-size: 13px; font-weight: 600; color: var(--ink); }
+.filter-row { display: flex; gap: 6px; flex-wrap: wrap; }
+.filter-pill {
+  padding: 4px 12px; border-radius: 20px; font-size: 11px;
+  font-weight: 500; cursor: pointer; border: 1px solid var(--border2);
+  background: var(--surface); color: var(--ink2); font-family: var(--sans);
+  transition: all .15s;
+}
+.filter-pill.on { background: var(--ink); color: #fff; border-color: var(--ink); }
+.search-input {
+  background: var(--surface); border: 1px solid var(--border2);
+  border-radius: 8px; padding: 6px 12px; font-size: 12px;
+  font-family: var(--sans); color: var(--ink); width: 200px;
+}
+.search-input:focus { outline: none; border-color: var(--accent); }
+
+/* ── ACTION CARDS ── */
+.action-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 16px;
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: border-color .15s;
+}
+.action-card:hover { border-color: var(--border2); }
+.status-dot {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.status-dot.ok { background: var(--green); }
+.status-dot.bad { background: var(--red); }
+.status-dot.warn { background: #C17A00; }
+.action-card-body { flex: 1; min-width: 0; }
+.action-name { font-size: 13px; font-weight: 500; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.action-cnpj { font-size: 11px; color: var(--ink3); font-family: var(--mono); margin-top: 1px; }
+.action-match { font-size: 11px; color: var(--ink3); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 260px; }
+.action-values { display: flex; flex-direction: column; align-items: flex-end; flex-shrink: 0; gap: 2px; }
+.action-val-pago { font-family: var(--mono); font-size: 13px; font-weight: 500; color: var(--green); }
+.action-val-cobr { font-family: var(--mono); font-size: 11px; color: var(--ink3); }
+.action-val-pend { font-family: var(--mono); font-size: 13px; font-weight: 500; color: var(--red); }
+.action-badge {
+  font-size: 10px; font-weight: 600; padding: 2px 8px;
+  border-radius: 20px; flex-shrink: 0;
+}
+.action-badge.ok { background: var(--green-pill); color: var(--green); }
+.action-badge.bad { background: var(--red-pill); color: var(--red); }
+.action-badge.warn { background: var(--amber-pill); color: var(--amber); }
+.action-card-actions { display: flex; gap: 6px; flex-shrink: 0; }
+
+/* ── EMPTY STATE ── */
+.empty-state {
+  text-align: center; padding: 48px 20px;
+  color: var(--ink3);
+}
+.empty-state .icon { font-size: 36px; margin-bottom: 10px; }
+.empty-state p { font-size: 14px; font-weight: 500; color: var(--ink2); }
+.empty-state small { font-size: 12px; color: var(--ink3); }
+
+/* ── COBRANÇA ── */
+.cobranca-banner {
+  background: var(--amber-bg);
+  border: 1px solid var(--amber-pill);
+  border-radius: 10px;
+  padding: 14px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.cobranca-banner-text { font-size: 13px; color: var(--amber); }
+.cobranca-banner-text strong { font-weight: 600; }
+
+/* ── MODAL ── */
+.overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,.4); z-index: 200;
+  align-items: center; justify-content: center; padding: 20px;
+}
+.overlay.open { display: flex; }
+.modal {
+  background: var(--surface); border-radius: 14px;
+  padding: 28px; width: 100%; max-width: 540px;
+  box-shadow: 0 20px 60px rgba(0,0,0,.15);
+  max-height: 88vh; overflow-y: auto;
+}
+.modal-title { font-size: 16px; font-weight: 600; margin-bottom: 18px; display: flex; align-items: center; justify-content: space-between; }
+.modal-close { cursor: pointer; color: var(--ink3); font-size: 18px; padding: 2px 6px; border-radius: 5px; }
+.modal-close:hover { background: var(--surface2); }
+.field { display: flex; flex-direction: column; gap: 5px; margin-bottom: 14px; }
+.field label { font-size: 10px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--ink2); }
+.field input, .field select, .field textarea {
+  background: var(--bg); border: 1px solid var(--border2);
+  border-radius: 8px; padding: 8px 11px; font-size: 13px;
+  font-family: var(--sans); color: var(--ink); width: 100%;
+}
+.field input:focus, .field select:focus { outline: none; border-color: var(--accent); background: var(--surface); }
+.field .hint { font-size: 11px; color: var(--ink3); }
+.field textarea { min-height: 60px; resize: vertical; }
+.modal-footer { display: flex; gap: 8px; justify-content: flex-end; margin-top: 20px; }
+
+/* ── TOAST ── */
+.toast {
+  position: fixed; bottom: 20px; right: 20px;
+  background: var(--ink); color: #fff;
+  padding: 10px 18px; border-radius: 10px; font-size: 13px;
+  transform: translateY(60px); opacity: 0; transition: all .25s;
+  z-index: 999; pointer-events: none; max-width: 320px;
+}
+.toast.show { transform: translateY(0); opacity: 1; }
+.toast.ok { background: var(--green); }
+.toast.err { background: var(--red); }
+
+/* ── CLIENTES ── */
+.cli-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 10px; padding: 14px 16px; margin-bottom: 6px;
+  display: flex; align-items: center; gap: 12px;
+}
+.cli-info { flex: 1; min-width: 0; }
+.cli-name { font-size: 13px; font-weight: 500; color: var(--ink); }
+.cli-cnpj { font-size: 11px; color: var(--ink3); font-family: var(--mono); margin-top: 2px; }
+.cli-aliases { margin-top: 4px; }
+.alias-tag {
+  display: inline-block; font-size: 10px; background: #E8EDF5; color: #1A3A6B;
+  border-radius: 4px; padding: 1px 7px; margin: 1px; font-family: var(--mono);
+}
+.no-alias { font-size: 11px; color: #C17A00; font-weight: 500; }
+
+/* ── MÊS PAGE ── */
+.mes-header { margin-bottom: 20px; }
+.mes-header h2 { font-size: 18px; font-weight: 600; }
+.mes-header p { font-size: 13px; color: var(--ink2); margin-top: 4px; }
+.mes-current {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 10px; padding: 16px 20px; margin-bottom: 20px;
+}
+.mes-current .lbl { font-size: 11px; color: var(--ink3); margin-bottom: 6px; text-transform: uppercase; letter-spacing: .07em; font-weight: 600; }
+.mes-current .comp { font-size: 20px; font-weight: 600; font-family: var(--mono); }
+.mes-current .totais { display: flex; gap: 24px; margin-top: 8px; }
+.mes-current .total-item { font-size: 12px; color: var(--ink2); }
+.mes-current .total-val { font-weight: 600; color: var(--ink); font-family: var(--mono); }
+
+/* ── VINCULAR MODAL ── */
+.txn-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 12px; border-bottom: 1px solid var(--border);
+  cursor: pointer; transition: background .1s;
+}
+.txn-item:last-child { border-bottom: none; }
+.txn-item:hover { background: var(--surface2); }
+.txn-item input[type=radio] { flex-shrink: 0; }
+.txn-memo { flex: 1; min-width: 0; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.txn-date { font-size: 10px; color: var(--ink3); font-family: var(--mono); }
+.txn-val { font-family: var(--mono); font-size: 13px; font-weight: 500; color: var(--green); flex-shrink: 0; }
+
+.tipo-card {
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+  cursor: pointer;
+  transition: all .15s;
+  position: relative;
+  overflow: hidden;
+}
+.tipo-card:hover { border-color: var(--border2); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,.08); }
+.tipo-card.active { border-color: var(--accent); background: var(--green-bg); }
+.tipo-card.active-deb { border-color: var(--red); background: var(--red-bg); }
+.tipo-card .tc-cod { font-family: var(--mono); font-size: 10px; color: var(--ink3); margin-bottom: 3px; }
+.tipo-card .tc-nome { font-size: 12px; font-weight: 600; color: var(--ink); margin-bottom: 6px; line-height: 1.3; }
+.tipo-card .tc-val { font-family: var(--mono); font-size: 13px; font-weight: 500; }
+.tipo-card .tc-val.cred { color: var(--green); }
+.tipo-card .tc-val.deb { color: var(--red); }
+.tipo-card .tc-cnt { font-size: 10px; color: var(--ink3); margin-top: 2px; }
+.tipo-card .tc-bar { position: absolute; bottom: 0; left: 0; height: 3px; border-radius: 0 0 0 0; }
+.tipo-card .tc-bar.cred { background: var(--green); }
+.tipo-card .tc-bar.deb { background: var(--red); }
+
+.table-wrap table th, .table-wrap table td { white-space: nowrap; }
+.table-wrap table td.desc { white-space: normal; max-width: 300px; }
+.badge-tipo { display: inline-block; font-size: 10px; font-weight: 500; padding: 2px 8px; border-radius: 20px; }
+.badge-tipo.cred { background: var(--green-pill); color: var(--green); }
+.badge-tipo.deb { background: var(--red-pill); color: var(--red); }
+.setup-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 40px; width: 100%; max-width: 460px; }
+.setup-brand { font-family: var(--serif); font-size: 26px; margin-bottom: 4px; }
+.setup-brand em { font-style: italic; color: var(--green); }
+.setup-sub { font-size: 13px; color: var(--ink3); margin-bottom: 28px; }
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.sql-block { background: var(--ink); border-radius: 8px; padding: 12px 14px; font-family: var(--mono); font-size: 11px; color: #6ECC90; line-height: 1.8; margin-bottom: 12px; user-select: all; }
+
+.spinner { display: inline-block; width: 12px; height: 12px; border: 2px solid rgba(255,255,255,.3); border-top-color: #fff; border-radius: 50%; animation: spin .6s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.pag-row { display: flex; align-items: center; justify-content: space-between; margin-top: 12px; font-size: 11px; color: var(--ink3); }
+.pag-btns { display: flex; gap: 6px; }
+
+/* ── FILA DE REVISÃO RÁPIDA ── */
+.fila-section {
+  background: var(--surface);
+  border: 1.5px solid var(--amber-pill);
+  border-radius: 12px;
+  margin-bottom: 20px;
+  overflow: hidden;
+}
+.fila-header {
+  background: var(--amber-bg);
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border-bottom: 1px solid var(--amber-pill);
+}
+.fila-title { font-size: 12px; font-weight: 600; color: var(--amber); display: flex; align-items: center; gap: 6px; }
+.fila-progress { font-size: 11px; color: var(--amber); font-family: var(--mono); }
+.fila-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  transition: background .1s;
+}
+.fila-item:last-child { border-bottom: none; }
+.fila-item.fila-done { opacity: .4; pointer-events: none; }
+.fila-side {
+  flex: 1;
+  min-width: 0;
+  background: var(--bg);
+  border-radius: 8px;
+  padding: 8px 12px;
+}
+.fila-side-label { font-size: 9px; font-weight: 600; letter-spacing: .07em; text-transform: uppercase; color: var(--ink3); margin-bottom: 3px; }
+.fila-side-name { font-size: 12px; font-weight: 500; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fila-side-val { font-size: 11px; font-family: var(--mono); color: var(--ink2); margin-top: 2px; }
+.fila-arrow { font-size: 18px; color: var(--amber); flex-shrink: 0; }
+.fila-actions { display: flex; flex-direction: column; gap: 4px; flex-shrink: 0; }
+.btn-aprovar { background: var(--green); color: #fff; border: none; border-radius: 7px; padding: 6px 14px; font-size: 12px; font-weight: 600; cursor: pointer; transition: background .15s; white-space: nowrap; font-family: var(--sans); }
+.btn-aprovar:hover { background: #144d2b; }
+.btn-rejeitar { background: transparent; color: var(--red); border: 1px solid var(--red-pill); border-radius: 7px; padding: 5px 14px; font-size: 12px; cursor: pointer; transition: all .15s; white-space: nowrap; font-family: var(--sans); }
+.btn-rejeitar:hover { background: var(--red-bg); }
+.fila-diff { font-size: 10px; font-family: var(--mono); padding: 2px 7px; border-radius: 10px; flex-shrink: 0; }
+.fila-diff.exato { background: var(--green-pill); color: var(--green); }
+.fila-diff.proximo { background: var(--amber-pill); color: var(--amber); }
+
+/* ── MATCH REASON ── */
+.match-reason {
+  font-size: 10px;
+  color: var(--ink3);
+  margin-top: 3px;
+  font-style: italic;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.match-reason-icon { font-style: normal; }
+
+/* ── INADIMPLÊNCIA BADGE ── */
+.inadimpl-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 20px;
+  margin-left: 6px;
+}
+.inadimpl-badge.ok { background: var(--green-pill); color: var(--green); }
+.inadimpl-badge.warn { background: var(--amber-pill); color: var(--amber); }
+.inadimpl-badge.bad { background: var(--red-pill); color: var(--red); }
+
+@media (max-width:768px) {
+  .sidebar { display: none; }
+  .main { margin-left: 0; }
+  .summary-strip { grid-template-columns: 1fr 1fr; }
+}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-wrap" style="display:flex;min-height:100vh;align-items:center;justify-content:center;background:#F2F0EA">
+  <div style="background:#FAFAF7;border:1px solid rgba(0,0,0,.1);border-radius:16px;padding:40px;width:100%;max-width:360px;box-shadow:0 8px 32px rgba(0,0,0,.08)">
+    <div style="font-family:'Instrument Serif',serif;font-size:26px;margin-bottom:4px">Concilia<em style="font-style:italic;color:#1A5C35">PIX</em></div>
+    <div style="font-size:13px;color:#9C9A8E;margin-bottom:28px">Sistema de conciliação financeira</div>
+    <div style="display:flex;flex-direction:column;gap:5px;margin-bottom:14px">
+      <label style="font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#5C5A50">Senha de acesso</label>
+      <input type="password" id="login-senha" placeholder="••••••••••"
+        style="background:#F2F0EA;border:1px solid rgba(0,0,0,.16);border-radius:8px;padding:10px 12px;font-size:14px;font-family:'Instrument Sans',sans-serif;color:#18170F;outline:none"
+        onkeydown="if(event.key==='Enter')fazerLogin()"
+        onfocus="this.style.borderColor='#1A5C35'" onblur="this.style.borderColor='rgba(0,0,0,.16)'">
+    </div>
+    <button onclick="fazerLogin()"
+      style="width:100%;padding:10px;background:#18170F;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;font-family:'Instrument Sans',sans-serif;cursor:pointer;transition:background .15s"
+      onmouseover="this.style.background='#2a2920'" onmouseout="this.style.background='#18170F'">
+      Entrar →
+    </button>
+    <div id="login-erro" style="display:none;margin-top:10px;font-size:12px;color:#8C1F1F;font-weight:600;text-align:center">
+      ❌ Senha incorreta
+    </div>
+  </div>
+</div>
+
+<!-- SETUP -->
+<div id="setup-wrap" class="setup-wrap" style="display:none">
+  <div class="setup-card">
+    <div class="setup-brand">Concilia<em>PIX</em></div>
+    <div class="setup-sub">Sistema de conciliação financeira — Banco do Brasil</div>
+
+    <details style="margin-bottom:20px" open>
+      <summary style="cursor:pointer;font-size:12px;font-weight:600;color:var(--ink2);margin-bottom:8px">⚙ Execute este SQL no Supabase antes de continuar</summary>
+      <div class="sql-block">ALTER TABLE clientes ADD COLUMN IF NOT EXISTS mensalidade numeric(12,2) DEFAULT 0;<br>ALTER TABLE clientes ADD COLUMN IF NOT EXISTS ciots_inclusos integer DEFAULT 0;<br>ALTER TABLE clientes ADD COLUMN IF NOT EXISTS ciots_emitidos integer DEFAULT 0;<br>ALTER TABLE clientes ADD COLUMN IF NOT EXISTS excedentes integer DEFAULT 0;<br>ALTER TABLE clientes ADD COLUMN IF NOT EXISTS valor_excedente numeric(12,2) DEFAULT 0;<br>ALTER TABLE clientes ADD COLUMN IF NOT EXISTS valor_faturar numeric(12,2) DEFAULT 0;<br>ALTER TABLE clientes ADD COLUMN IF NOT EXISTS competencia text;<br>ALTER TABLE extrato_bb ADD COLUMN IF NOT EXISTS cnpj_pagador text;<br><br>-- Corrige FK da tabela vinculos: aponta para cobrancas (não vendas)<br>ALTER TABLE vinculos DROP CONSTRAINT IF EXISTS vinculos_venda_id_fkey;<br>ALTER TABLE vinculos ADD CONSTRAINT vinculos_venda_id_fkey FOREIGN KEY (venda_id) REFERENCES cobrancas(id) ON DELETE CASCADE;</div>
+      <div style="margin-top:8px;font-size:11px;color:#8C1F1F;font-weight:600">⚠ Se receber erro "Key is not present in table vendas", execute os dois últimos comandos acima no SQL Editor do Supabase.</div>
+    </details>
+
+    <div class="grid-2" style="margin-bottom:14px">
+      <div class="field" style="margin:0">
+        <label>URL do Supabase</label>
+        <input type="url" id="cfg-url" placeholder="https://xxxx.supabase.co">
+      </div>
+      <div class="field" style="margin:0">
+        <label>Chave API</label>
+        <input type="text" id="cfg-key" placeholder="sb_publishable_...">
+      </div>
+    </div>
+    <button class="btn primary full" id="btn-conn" onclick="conectar()">Conectar</button>
+    <div id="conn-msg" style="margin-top:10px;font-size:12px;display:none"></div>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="app" class="shell" style="display:none">
+
+<aside class="sidebar">
+  <div class="sidebar-top">
+    <div class="sidebar-brand">Concilia<em>PIX</em></div>
+    <div class="sidebar-date" id="sidebar-date"></div>
+  </div>
+  <nav>
+    <div class="nav-item active" onclick="navTo('hoje')" data-page="hoje">
+      <span class="nav-icon">◈</span> Hoje
+      <span class="nav-badge alert" id="badge-pendentes" style="display:none">0</span>
+    </div>
+    <div class="nav-item" onclick="navTo('extrato')" data-page="extrato">
+      <span class="nav-icon">▤</span> Extrato
+    </div>
+    <div class="nav-item" onclick="navTo('clientes')" data-page="clientes">
+      <span class="nav-icon">◎</span> Clientes
+      <span class="nav-badge" id="badge-clientes">0</span>
+    </div>
+    <div class="nav-item" onclick="navTo('mes')" data-page="mes">
+      <span class="nav-icon">◉</span> Mês
+    </div>
+  </nav>
+  <div class="sidebar-footer">
+    <button onclick="reconfigurar()" style="margin-bottom:6px">⚙ Reconfigurar banco</button>
+    <button onclick="abrirResetDados()" style="border-color:rgba(220,80,80,.4);color:rgba(220,80,80,.7);margin-bottom:6px" title="Apagar todos os clientes, cobranças e vínculos">🗑 Zerar dados</button>
+    <button onclick="sair()" style="border-color:rgba(255,255,255,.15);color:rgba(255,255,255,.4)" title="Sair do sistema">↩ Sair</button>
+  </div>
+</aside>
+
+<div class="main">
+<div class="topbar">
+  <div class="topbar-left">
+    <div class="topbar-title" id="topbar-title">Hoje</div>
+    <div class="topbar-sub" id="topbar-sub"></div>
+  </div>
+  <div class="topbar-right">
+    <span class="conn-dot">● conectado</span>
+    <div id="topbar-actions"></div>
+  </div>
+</div>
+
+<!-- ══ HOJE ══ -->
+<div class="page active" id="page-hoje">
+
+  <!-- Status do extrato + seletor de competência -->
+  <div id="hoje-extrato-status" style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 18px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+    <div style="display:flex;align-items:center;gap:10px">
+      <span style="font-size:18px">🏦</span>
+      <div>
+        <div style="font-size:13px;font-weight:500" id="hoje-extrato-txt">Nenhum extrato importado</div>
+        <div style="font-size:11px;color:var(--ink3)" id="hoje-extrato-sub">Vá até a aba Extrato para importar o arquivo do BB</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <!-- Seletor de competência ativa -->
+      <div style="display:flex;align-items:center;gap:6px;background:var(--surface2);border:1px solid var(--border2);border-radius:8px;padding:5px 12px">
+        <span style="font-size:11px;color:var(--ink2);font-weight:600">Competência:</span>
+        <input type="month" id="comp-ativa" onchange="trocarCompetencia()" style="border:none;background:transparent;font-size:13px;font-family:var(--sans);color:var(--ink);outline:none;font-weight:500">
+      </div>
+      <button class="btn sm green" onclick="rodarConciliacao()">⟳ Reconciliar</button>
+      <button class="btn sm" onclick="navTo('extrato')">↑ Importar extrato</button>
+      <button class="btn sm" onclick="exportarResultado()" title="Exportar resultado completo em Excel">↓ Exportar Excel</button>
+    </div>
+  </div>
+
+  <!-- Banner de período incompatível -->
+  <div id="banner-periodo" style="display:none;background:var(--amber-bg);border:1px solid var(--amber-pill);border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:13px;color:var(--amber)"></div>
+
+  <!-- Banner modo somente-banco -->
+  <div id="banner-modo-banco" style="display:none;background:#EEF2FF;border:1px solid #C7D2FE;border-radius:10px;padding:10px 16px;margin-bottom:16px;font-size:12px;color:#4338CA">
+    💾 <strong>Exibindo status gravado no banco.</strong> Os resultados abaixo refletem a última conciliação salva. Para reprocessar com novo extrato, importe o arquivo na aba Extrato.
+  </div>
+
+  <!-- Summary -->
+  <div class="summary-strip" id="summary-strip" style="grid-template-columns:repeat(5,1fr)">
+    <div class="summary-card"><div class="lbl">Total clientes</div><div class="val" id="s-total">—</div></div>
+    <div class="summary-card ok"><div class="lbl">Identificados</div><div class="val" id="s-ok">—</div><div class="sub" id="s-ok-val">—</div></div>
+    <div class="summary-card bad"><div class="lbl">Pendentes</div><div class="val" id="s-pend">—</div><div class="sub" id="s-pend-val">—</div></div>
+    <div class="summary-card warn"><div class="lbl">Divergentes</div><div class="val" id="s-div">—</div><div class="sub">valor diferente</div></div>
+    <div class="summary-card" id="s-match-card"><div class="lbl">Taxa de match</div><div class="val" id="s-match-rate">—</div><div class="sub" id="s-match-sub">—</div></div>
+  </div>
+
+  <!-- Banner cobrança -->
+  <div class="cobranca-banner" id="banner-cobranca" style="display:none">
+    <div class="cobranca-banner-text">
+      <strong id="cobranca-count">0 clientes</strong> estão pendentes de pagamento.
+      <span id="cobranca-val" style="font-family:var(--mono)"></span>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn sm" onclick="exportarCobranca('xlsx')">↓ Excel</button>
+      <button class="btn sm primary" onclick="exportarCobranca('whatsapp')">💬 WhatsApp</button>
+    </div>
+  </div>
+
+  <!-- ── FILA DE REVISÃO RÁPIDA ── -->
+  <div id="fila-revisao" style="display:none"></div>
+
+  <!-- Filtros + Lista -->
+  <div class="action-header">
+    <div class="action-title" id="list-title">Carregando...</div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <div class="filter-row">
+        <button class="filter-pill on" onclick="setFiltHoje('todos',this)">Todos</button>
+        <button class="filter-pill" onclick="setFiltHoje('pago',this)">✓ Pagos</button>
+        <button class="filter-pill" onclick="setFiltHoje('pendente',this)">✗ Pendentes</button>
+        <button class="filter-pill" onclick="setFiltHoje('divergente',this)">⚠ Divergentes</button>
+      </div>
+      <input class="search-input" id="search-hoje" placeholder="Buscar cliente..." oninput="renderHoje()">
+    </div>
+  </div>
+
+  <div id="lista-hoje"></div>
+
+  <div class="pag-row">
+    <span id="pag-hoje-info"></span>
+    <div class="pag-btns">
+      <button class="btn sm" id="pag-prev" onclick="pagHoje(-1)">← Ant.</button>
+      <button class="btn sm" id="pag-next" onclick="pagHoje(1)">Próx. →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ EXTRATO ══ -->
+<div class="page" id="page-extrato">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px">
+    <div>
+      <h2 style="font-size:18px;font-weight:600">Extrato</h2>
+      <p style="font-size:12px;color:var(--ink3);margin-top:3px" id="ext-periodo">Importe o extrato para visualizar</p>
+    </div>
+    <div style="display:flex;gap:8px">
+      <div class="import-zone" style="padding:10px 16px;margin:0;border-style:dashed;border-width:1.5px;min-width:220px">
+        <input type="file" accept=".txt,.TXT,.ofx,.OFX" onchange="importarExtratoDash(this)">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:18px">🏦</span>
+          <div>
+            <div style="font-size:12px;font-weight:500;color:var(--ink2)">Importar extrato BB</div>
+            <div style="font-size:11px;color:var(--ink3)">.txt completo ou .ofx</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SALDO STRIP -->
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px" id="ext-saldo-strip">
+    <div class="summary-card ok">
+      <div class="lbl">Total Créditos</div>
+      <div class="val" id="ext-total-cred">—</div>
+      <div class="sub" id="ext-count-cred">—</div>
+    </div>
+    <div class="summary-card bad">
+      <div class="lbl">Total Débitos</div>
+      <div class="val" id="ext-total-deb">—</div>
+      <div class="sub" id="ext-count-deb">—</div>
+    </div>
+    <div class="summary-card" id="ext-saldo-card">
+      <div class="lbl">Saldo do Período</div>
+      <div class="val" id="ext-saldo">—</div>
+      <div class="sub" id="ext-periodo-sub">—</div>
+    </div>
+  </div>
+
+  <!-- CARDS POR TIPO -->
+  <div style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--ink3);margin-bottom:10px">Por tipo de transação — clique para filtrar</div>
+  <div id="ext-tipo-cards" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;margin-bottom:20px"></div>
+
+  <!-- LISTA DE TRANSAÇÕES -->
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap">
+    <div style="font-size:13px;font-weight:600" id="ext-list-title">Todas as transações</div>
+    <div style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <!-- Filtro por data -->
+      <div style="display:flex;align-items:center;gap:6px;background:var(--surface);border:1px solid var(--border2);border-radius:8px;padding:4px 10px">
+        <span style="font-size:11px;color:var(--ink3);white-space:nowrap">De</span>
+        <input type="date" id="ext-data-de" onchange="filtrarDataExt()" style="border:none;background:transparent;font-size:12px;font-family:var(--sans);color:var(--ink);outline:none;width:120px">
+        <span style="font-size:11px;color:var(--ink3)">até</span>
+        <input type="date" id="ext-data-ate" onchange="filtrarDataExt()" style="border:none;background:transparent;font-size:12px;font-family:var(--sans);color:var(--ink);outline:none;width:120px">
+        <button onclick="limparDataExt()" title="Limpar datas" style="border:none;background:none;cursor:pointer;color:var(--ink3);font-size:14px;padding:0 2px;line-height:1" id="btn-limpar-data" style="display:none">✕</button>
+      </div>
+      <!-- Filtros tipo -->
+      <button class="filter-pill on" onclick="setFiltExt('todos',this)" id="fpill-todos">Todos</button>
+      <button class="filter-pill" onclick="setFiltExt('credito',this)">↑ Créditos</button>
+      <button class="filter-pill" onclick="setFiltExt('debito',this)">↓ Débitos</button>
+      <input class="search-input" id="search-ext" placeholder="Buscar descrição..." oninput="renderExtratoDash()" style="width:180px">
+    </div>
+  </div>
+
+  <div class="table-wrap" id="ext-table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Data</th>
+          <th>Tipo</th>
+          <th>Descrição / Beneficiário</th>
+          <th>Documento</th>
+          <th class="right">Valor</th>
+          <th style="text-align:center">Ação</th>
+        </tr>
+      </thead>
+      <tbody id="tbody-ext"></tbody>
+    </table>
+  </div>
+  <div class="pag-row">
+    <span id="pag-ext-info"></span>
+    <div class="pag-btns">
+      <button class="btn sm" id="pag-ext-prev" onclick="pagExt(-1)">← Ant.</button>
+      <button class="btn sm" id="pag-ext-next" onclick="pagExt(1)">Próx. →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ CLIENTES ══ -->
+<div class="page" id="page-clientes">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px">
+    <div>
+      <h2 style="font-size:18px;font-weight:600">Clientes</h2>
+      <p style="font-size:12px;color:var(--ink3);margin-top:3px">Cadastre e gerencie os apelidos do extrato BB</p>
+    </div>
+    <button class="btn primary" onclick="openModal('modal-cliente')">+ Novo cliente</button>
+  </div>
+  <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+    <input class="search-input" id="search-clientes" placeholder="Buscar nome, CNPJ, apelido..." oninput="renderClientes()" style="width:100%;max-width:320px">
+    <button class="filter-pill on" onclick="setFiltCli('todos',this)">Todos</button>
+    <button class="filter-pill" onclick="setFiltCli('sem-alias',this)">⚠ Sem apelido</button>
+    <button class="filter-pill" onclick="setFiltCli('excedentes',this)">↑ Com excedentes</button>
+    <button class="filter-pill" onclick="setFiltCli('sem-valor',this)">— Sem valor</button>
+    <button class="filter-pill" onclick="setFiltCli('inadimplentes',this)">🔴 Inadimplentes</button>
+  </div>
+  <div id="lista-clientes"></div>
+  <div class="pag-row">
+    <span id="pag-cli-info"></span>
+    <div class="pag-btns">
+      <button class="btn sm" id="pag-cli-prev" onclick="pagCli(-1)">← Ant.</button>
+      <button class="btn sm" id="pag-cli-next" onclick="pagCli(1)">Próx. →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MÊS ══ -->
+<div class="page" id="page-mes">
+  <div class="mes-header">
+    <h2>Cobranças mensais</h2>
+    <p>Importe a planilha CIOT por competência. Cada mês fica separado — o histórico acumula.</p>
+  </div>
+
+  <!-- Competências importadas -->
+  <div style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--ink3);margin-bottom:8px">Competências importadas</div>
+  <div id="mes-competencias" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px">
+    <div style="font-size:12px;color:var(--ink3)">Nenhuma planilha importada ainda</div>
+  </div>
+
+  <!-- Stats da competência selecionada -->
+  <div class="mes-current" id="mes-current">
+    <div class="lbl">Competência ativa</div>
+    <div class="comp" id="mes-comp-atual">—</div>
+    <div class="totais" id="mes-totais"></div>
+  </div>
+
+  <!-- Importar nova planilha -->
+  <div style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--ink3);margin:16px 0 8px">Importar nova planilha</div>
+
+  <div class="field" style="max-width:220px;margin-bottom:12px">
+    <label>Competência da planilha *</label>
+    <input type="month" id="mes-comp-input">
+    <span class="hint">Mês ao qual esta planilha se refere</span>
+  </div>
+
+  <div class="import-zone" id="dz-planilha" style="margin-bottom:16px">
+    <input type="file" accept=".xlsx,.xls" onchange="importarPlanilha(this)">
+    <div class="import-zone-icon">📊</div>
+    <div class="import-zone-text">Arraste a planilha CIOT aqui</div>
+    <div class="import-zone-sub">Arquivo .xlsx com colunas: Razão Social, CNPJ, Mensalidade, CIOTs, Valor Faturar</div>
+  </div>
+
+  <div id="planilha-preview" style="display:none">
+    <div style="font-size:12px;color:var(--ink2);margin-bottom:8px" id="planilha-preview-txt"></div>
+    <button class="btn green" id="btn-salvar-planilha" onclick="salvarPlanilha()">⬆ Salvar no banco</button>
+  </div>
+  <div id="planilha-prog" style="display:none;margin-top:12px">
+    <div style="height:4px;background:var(--border);border-radius:4px;overflow:hidden;margin-bottom:6px"><div id="planilha-prog-fill" style="height:100%;background:var(--green);border-radius:4px;transition:width .2s;width:0%"></div></div>
+    <div id="planilha-prog-txt" style="font-size:11px;color:var(--ink3)"></div>
+  </div>
+</div>
+
+</div><!-- /main -->
+</div><!-- /app -->
+
+<!-- MODAIS -->
+<!-- Cliente -->
+<div class="overlay" id="modal-cliente">
+  <div class="modal">
+    <div class="modal-title"><span id="modal-cli-title">Novo cliente</span><span class="modal-close" onclick="closeModal('modal-cliente')">✕</span></div>
+    <div class="field"><label>Razão Social *</label><input type="text" id="c-razao" placeholder="Nome da empresa"></div>
+    <div class="grid-2">
+      <div class="field"><label>CNPJ / CPF</label><input type="text" id="c-cnpj" placeholder="00.000.000/0001-00"></div>
+      <div class="field"><label>Contato</label><input type="text" id="c-contato" placeholder="email ou telefone"></div>
+    </div>
+    <div class="field">
+      <label>Apelidos no extrato BB</label>
+      <input type="text" id="c-aliases" placeholder="MVC, MVC TRANSP, MVC TRANSPORTE">
+      <span class="hint">Como o nome aparece no extrato — separe com vírgula</span>
+    </div>
+    <div class="field" style="margin-bottom:0"><label>Observações</label><textarea id="c-obs" placeholder="Anotações..."></textarea></div>
+    <input type="hidden" id="c-id">
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-cliente')">Cancelar</button>
+      <button class="btn primary" id="btn-save-cli" onclick="saveCliente()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Vincular -->
+<div class="overlay" id="modal-vincular">
+  <div class="modal" style="max-width:600px">
+    <div class="modal-title"><span>Vincular lançamento manualmente</span><span class="modal-close" onclick="closeModal('modal-vincular')">✕</span></div>
+    <div id="modal-vincular-info" style="background:var(--surface2);border-radius:8px;padding:12px 14px;margin-bottom:14px;font-size:13px"></div>
+    <div style="font-size:12px;font-weight:600;margin-bottom:8px;color:var(--ink2)">Selecione o lançamento no extrato:</div>
+    <div style="max-height:320px;overflow-y:auto;border:1px solid var(--border);border-radius:8px" id="txn-list"></div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-vincular')">Cancelar</button>
+      <button class="btn primary" onclick="confirmarVinculo()">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Apelido BB -->
+<div class="overlay" id="modal-apelido">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-title"><span id="modal-ap-title">Vincular nome do BB</span><span class="modal-close" onclick="closeModal('modal-apelido')">✕</span></div>
+    <div id="modal-ap-cli" style="background:var(--surface2);border-radius:8px;padding:12px 14px;margin-bottom:14px;font-size:13px"></div>
+    <div style="display:flex;gap:8px;margin-bottom:10px;align-items:center">
+      <input class="search-input" id="ap-search" placeholder="Filtrar lançamentos..." oninput="renderApelidoList()" style="flex:1">
+    </div>
+    <div style="max-height:300px;overflow-y:auto;border:1px solid var(--border);border-radius:8px" id="ap-list"></div>
+    <div class="modal-footer"><button class="btn" onclick="closeModal('modal-apelido')">Fechar</button></div>
+  </div>
+</div>
+
+<!-- WhatsApp -->
+<div class="overlay" id="modal-whatsapp">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-title"><span>Mensagens de cobrança</span><span class="modal-close" onclick="closeModal('modal-whatsapp')">✕</span></div>
+    <div style="font-size:12px;color:var(--ink2);margin-bottom:12px">Clique no cliente para copiar a mensagem personalizada:</div>
+    <div id="wpp-list" style="max-height:400px;overflow-y:auto"></div>
+    <div class="modal-footer"><button class="btn" onclick="closeModal('modal-whatsapp')">Fechar</button></div>
+  </div>
+</div>
+
+<!-- MODAL: CONCILIAR DO EXTRATO -->
+<div class="overlay" id="modal-conciliar-extrato">
+  <div class="modal" style="max-width:620px">
+    <div class="modal-title">
+      <span>Conciliar lançamento</span>
+      <span class="modal-close" onclick="closeModal('modal-conciliar-extrato')">✕</span>
+    </div>
+    <!-- Info do lançamento -->
+    <div id="mce-lancamento" style="background:var(--green-bg);border:1px solid var(--green-pill);border-radius:8px;padding:12px 16px;margin-bottom:16px"></div>
+    <!-- Busca -->
+    <div style="display:flex;gap:8px;margin-bottom:10px;align-items:center">
+      <input class="search-input" id="mce-search" placeholder="Buscar cliente..." oninput="renderConciliarExtrato()" style="flex:1">
+      <span style="font-size:11px;color:var(--ink3)" id="mce-count"></span>
+    </div>
+    <!-- Lista de clientes -->
+    <div style="max-height:380px;overflow-y:auto;border:1px solid var(--border);border-radius:8px" id="mce-lista"></div>
+    <div style="margin-top:12px;font-size:11px;color:var(--ink3)">
+      💡 Ordenado por proximidade de valor. Ao clicar no cliente, o sistema vincula e aprende o apelido automaticamente.
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: ZERAR DADOS -->
+<div class="overlay" id="modal-reset">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-title">
+      <span>🗑 Zerar dados</span>
+      <span class="modal-close" onclick="closeModal('modal-reset')">✕</span>
+    </div>
+    <div style="background:var(--red-bg);border:1px solid var(--red-pill);border-radius:8px;padding:12px 14px;margin-bottom:16px;font-size:13px;color:var(--red)">
+      <strong>⚠ Atenção:</strong> esta operação apaga registros do banco. Não pode ser desfeita.
+    </div>
+    <div style="font-size:13px;font-weight:600;margin-bottom:10px;color:var(--ink2)">O que deseja apagar?</div>
+    <label style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-radius:8px;cursor:pointer;border:1px solid var(--border);margin-bottom:6px;background:var(--surface)">
+      <input type="checkbox" id="reset-clientes" style="margin-top:2px;flex-shrink:0">
+      <div>
+        <div style="font-size:13px;font-weight:500">Clientes</div>
+        <div style="font-size:11px;color:var(--ink3)">Apaga todos os clientes e seus apelidos BB (CASCADE apaga cobranças e vínculos também)</div>
+      </div>
+    </label>
+    <label style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-radius:8px;cursor:pointer;border:1px solid var(--border);margin-bottom:6px;background:var(--surface)">
+      <input type="checkbox" id="reset-cobrancas" style="margin-top:2px;flex-shrink:0">
+      <div>
+        <div style="font-size:13px;font-weight:500">Cobranças e histórico</div>
+        <div style="font-size:11px;color:var(--ink3)">Apaga todas as competências importadas (mantém clientes)</div>
+      </div>
+    </label>
+    <label style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-radius:8px;cursor:pointer;border:1px solid var(--border);margin-bottom:6px;background:var(--surface)">
+      <input type="checkbox" id="reset-vinculos" style="margin-top:2px;flex-shrink:0">
+      <div>
+        <div style="font-size:13px;font-weight:500">Vínculos de conciliação</div>
+        <div style="font-size:11px;color:var(--ink3)">Desfaz todos os matches manuais e automáticos (mantém clientes e cobranças)</div>
+      </div>
+    </label>
+    <label style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-radius:8px;cursor:pointer;border:1px solid var(--border);margin-bottom:16px;background:var(--surface)">
+      <input type="checkbox" id="reset-aliases" style="margin-top:2px;flex-shrink:0">
+      <div>
+        <div style="font-size:13px;font-weight:500">Apelidos aprendidos</div>
+        <div style="font-size:11px;color:var(--ink3)">Limpa todos os apelidos BB dos clientes (mantém cadastro e histórico)</div>
+      </div>
+    </label>
+    <div style="font-size:12px;color:var(--ink3);margin-bottom:14px">Digite <strong>CONFIRMAR</strong> para prosseguir:</div>
+    <input type="text" id="reset-confirm-input" placeholder="CONFIRMAR" style="width:100%;padding:8px 12px;border:1.5px solid var(--border2);border-radius:8px;font-size:13px;font-family:var(--sans);margin-bottom:14px" oninput="document.getElementById('btn-exec-reset').disabled=this.value!=='CONFIRMAR'">
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-reset')">Cancelar</button>
+      <button class="btn" id="btn-exec-reset" disabled onclick="executarReset()" style="background:var(--red);color:#fff;border-color:var(--red)">🗑 Apagar selecionados</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+// ══════════════════════════════════════════════════
+// LOGIN
+// ══════════════════════════════════════════════════
+// Hash SHA-256 de "Brasil123@"
+const SENHA_HASH = '9156a1ee0122a9603c4237230499bd56f88fde7dc834c23efa5d24f0a758bf67';
+
+async function hashSenha(senha) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(senha));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+async function fazerLogin() {
+  const senha = document.getElementById('login-senha').value;
+  const hash = await hashSenha(senha);
+  if (hash === SENHA_HASH) {
+    localStorage.setItem('cpix_auth', '1');
+    document.getElementById('login-wrap').style.display = 'none';
+    document.getElementById('setup-wrap').style.display = 'flex';
+  } else {
+    const erro = document.getElementById('login-erro');
+    erro.style.display = 'block';
+    document.getElementById('login-senha').style.borderColor = '#8C1F1F';
+    setTimeout(() => { erro.style.display='none'; document.getElementById('login-senha').style.borderColor='rgba(0,0,0,.16)'; }, 3000);
+  }
+}
+
+// Se já autenticou, pula a tela de login
+(function(){
+  if (localStorage.getItem('cpix_auth') === '1') {
+    document.getElementById('login-wrap').style.display = 'none';
+    document.getElementById('setup-wrap').style.display = 'flex';
+  }
+})();
+
+// ══════════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════════
+let SUPA_URL='', SUPA_KEY='';
+let clientes=[], extrato=[], vinculos=[], concResult=[], cobrancas=[];
+let filtHoje='todos', filtCli='todos';
+let pagHojePage=0, pagCliPage=0;
+const PER=40;
+let vinculandoClienteId=null, vinculandoVendaId=null;
+let planilhaData=[], planilhaParsed=[];
+let compAtiva=''; // competência ativa para conciliação
+
+// ══════════════════════════════════════════════════
+// SETUP
+// ══════════════════════════════════════════════════
+try{const c=JSON.parse(localStorage.getItem('conciliaBB_config')||'{}');if(c.url)document.getElementById('cfg-url').value=c.url;if(c.key)document.getElementById('cfg-key').value=c.key}catch(e){}
+
+function reconfigurar(){document.getElementById('app').style.display='none';document.getElementById('setup-wrap').style.display='flex'}
+
+function sair(){
+  localStorage.removeItem('cpix_auth');
+  location.reload();
+}
+
+async function conectar(){
+  const url=document.getElementById('cfg-url').value.trim().replace(/\/$/,'');
+  const key=document.getElementById('cfg-key').value.trim();
+  if(!url||!key){showMsg('conn-msg','Preencha URL e chave',false);return}
+  const btn=document.getElementById('btn-conn');
+  btn.innerHTML='<span class="spinner"></span> Conectando...';btn.disabled=true;
+  try{
+    SUPA_URL=url;SUPA_KEY=key;
+    const r=await supaFetch('clientes?limit=1');
+    if(r.ok||r.status===404){
+      localStorage.setItem('conciliaBB_config',JSON.stringify({url,key}));
+      document.getElementById('setup-wrap').style.display='none';
+      document.getElementById('app').style.display='flex';
+      initApp();
+    } else if(r.status===401){showMsg('conn-msg','❌ Chave inválida',false);}
+    else{showMsg('conn-msg','❌ Erro '+r.status,false);}
+  }catch(e){showMsg('conn-msg','❌ Não foi possível conectar',false);}
+  btn.innerHTML='Conectar';btn.disabled=false;
+}
+function showMsg(id,msg,ok){const el=document.getElementById(id);el.style.display='block';el.style.color=ok?'var(--green)':'var(--red)';el.style.fontWeight='600';el.textContent=msg;}
+
+// ══════════════════════════════════════════════════
+// SUPABASE
+// ══════════════════════════════════════════════════
+function supaFetch(path,opts={}){
+  const prefer = (opts.headers&&opts.headers['Prefer']) || opts.prefer || 'return=representation';
+  const headers = {'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY,'Content-Type':'application/json','Prefer':prefer,...(opts.headers||{})};
+  return fetch(SUPA_URL+'/rest/v1/'+path,{...opts,headers});
+}
+async function supaGet(table,q=''){const r=await supaFetch(table+'?'+q+'&limit=2000');if(!r.ok)throw new Error(await r.text());return r.json();}
+async function supaPost(table,data){const r=await supaFetch(table,{method:'POST',body:JSON.stringify(data)});if(!r.ok)throw new Error(await r.text());return r.json();}
+async function supaPatch(table,id,data){const r=await supaFetch(table+'?id=eq.'+id,{method:'PATCH',body:JSON.stringify(data),prefer:'return=minimal'});if(!r.ok)throw new Error(await r.text());}
+async function supaDelete(table,filter){const r=await supaFetch(table+'?'+filter,{method:'DELETE',prefer:'return=minimal'});if(!r.ok)throw new Error(await r.text());}
+async function supaUpsert(table,data,onConflict){
+  const r=await supaFetch(table+'?on_conflict='+onConflict,{
+    method:'POST',
+    body:JSON.stringify(Array.isArray(data)?data:[data]),
+    headers:{'Prefer':'return=minimal,resolution=merge-duplicates'}
+  });
+  if(!r.ok)throw new Error(await r.text());
+}
+
+// ══════════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════════
+async function initApp(){
+  const now=new Date();
+  document.getElementById('sidebar-date').textContent=now.toLocaleDateString('pt-BR',{weekday:'short',day:'2-digit',month:'short'});
+  // Competência padrão = mês atual
+  const mesAtual=now.getFullYear()+'-'+(String(now.getMonth()+1).padStart(2,'0'));
+  document.getElementById('mes-comp-input').value=mesAtual;
+  document.getElementById('comp-ativa').value=mesAtual;
+  compAtiva=mesAtual;
+  await loadAll();
+  renderHoje();
+  setupDrop();
+}
+
+async function loadAll(){
+  try{
+    [clientes,extrato,vinculos,cobrancas]=await Promise.all([
+      supaGet('clientes','select=id,razao,cnpj,aliases,contato'),
+      supaGet('extrato_bb','select=fitid,memo,credito,valor,data,cnpj_pagador'),
+      supaGet('vinculos','select=venda_id,txn_fitid'),
+      supaGet('cobrancas','select=id,cliente_id,competencia,mensalidade,ciots_inclusos,ciots_emitidos,excedentes,valor_excedente,valor_faturar,status,txn_fitid,valor_pago').catch(()=>[])
+    ]);
+    document.getElementById('badge-clientes').textContent=clientes.length;
+  }catch(e){toast('Erro ao carregar: '+e.message,'err');}
+}
+
+function trocarCompetencia(){
+  compAtiva=document.getElementById('comp-ativa').value;
+  rodarConciliacao();
+}
+
+// ══════════════════════════════════════════════════
+// NAV
+// ══════════════════════════════════════════════════
+const PAGE_TITLES={hoje:'Hoje',extrato:'Extrato',clientes:'Clientes',mes:'Configuração do Mês'};
+function navTo(page){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('page-'+page).classList.add('active');
+  document.querySelector('[data-page="'+page+'"]').classList.add('active');
+  document.getElementById('topbar-title').textContent=PAGE_TITLES[page];
+  document.getElementById('topbar-actions').innerHTML='';
+  if(page==='hoje'){atualizarStatusExtrato();}
+  if(page==='extrato'){renderExtratoDash();}
+  if(page==='clientes'){renderClientes();document.getElementById('topbar-actions').innerHTML='<button class="btn sm primary" onclick="openModal(\'modal-cliente\')">+ Novo cliente</button>';}
+  if(page==='mes')renderMes();
+}
+
+// ══════════════════════════════════════════════════
+// HELPERS
+// ══════════════════════════════════════════════════
+function norm(s){return String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim()}
+function cleanDigits(s){return String(s||'').replace(/\D/g,'')}
+function brl(v){if(!v&&v!==0)return'—';return parseFloat(v).toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}
+function dateStr(s){if(!s)return'—';if(s.includes('T'))s=s.slice(0,10);if(s.includes('-')){const[y,m,d]=s.split('-');return d+'/'+m+'/'+y}return s}
+function extractCNPJ(s){const str=String(s||'');const fmt=str.match(/\b(\d{2})\.(\d{3})\.(\d{3})\/(\d{4})-(\d{2})\b/);if(fmt)return fmt[1]+fmt[2]+fmt[3]+fmt[4]+fmt[5];const raw=str.match(/\b(\d{14})\b/);return raw?raw[1]:'';}
+function extrairApelido(memo){
+  if(!memo)return null;
+  let s=memo.trim();
+  // Rejeita txids Pix: string longa sem espaço, só letras e números (ex: "lHPqFVFK5ACmL6474h3Jts9ZrQl8yWNNILW")
+  if(/^[A-Za-z0-9]{15,}$/.test(s))return null;
+  s=s.replace(/^\d{2}\/\d{2}\s+\d{2}:\d{2}\s+/,'');
+  s=s.replace(/\b\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}\b/g,'').trim();
+  s=s.replace(/\b\d{14}\b/g,'').trim();
+  s=s.replace(/^\d{3}\s+\d{4,6}\s+/,'');
+  s=s.replace(/\s+/g,' ').trim();
+  if(!s||s.length<3||/^\d+$/.test(s))return null;
+  // Rejeita se ainda parece código aleatório (sem vogal, >20 chars)
+  if(s.length>20&&!/[aeiouáéíóúàêô]/i.test(s))return null;
+  return s;
+}
+const GENERIC=new Set(['ltda','sa','eireli','me','epp','de','do','da','dos','das','em','transportes','transporte','logistica','servicos','comercio','industria','cargas','e','o','a']);
+function kwds(s){return norm(s).split(' ').filter(w=>!GENERIC.has(w)&&w.length>=2)}
+
+function toast(msg,type=''){const t=document.getElementById('toast');t.textContent=msg;t.className='toast show '+type;setTimeout(()=>t.className='toast',3000);}
+function openModal(id){document.getElementById(id).classList.add('open')}
+function closeModal(id){document.getElementById(id).classList.remove('open')}
+document.querySelectorAll('.overlay').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open')}));
+
+// ══════════════════════════════════════════════════
+// CONCILIAÇÃO ENGINE
+// ══════════════════════════════════════════════════
+const VALOR_MAX = 50000;
+
+function rodarConciliacao(){
+  // Cobranças da competência ativa
+  const cobComp = cobrancas.filter(c=>c.competencia===compAtiva);
+  const cobPorCliente = {};
+  cobComp.forEach(c=>cobPorCliente[c.cliente_id]=c);
+
+  // Vínculos: mapa cobranca_id → fitid
+  const vinculosMap = {};
+  vinculos.forEach(v=>vinculosMap[v.venda_id]=v);
+  const usedFitids = new Set(Object.values(vinculosMap).map(v=>v.txn_fitid).filter(Boolean));
+
+  const creditosValidos = extrato.filter(t=>t.credito&&parseFloat(t.valor||0)<=VALOR_MAX);
+  const semExtrato = creditosValidos.length === 0; // extrato não carregado em memória
+  const aprendizados = [];
+  const autoApplyQueue = [];
+
+  // Mapa de valor único
+  const contValoresCob={};
+  cobComp.forEach(c=>{const vf=Math.round(parseFloat(c.valor_faturar||0)*100)/100;if(vf>0)contValoresCob[vf]=(contValoresCob[vf]||0)+1;});
+  const contValoresExt={};
+  creditosValidos.forEach(txn=>{const v=Math.round(parseFloat(txn.valor||0)*100)/100;if(v>0)contValoresExt[v]=(contValoresExt[v]||0)+1;});
+
+  concResult = clientes.map(cli=>{
+    const cob    = cobPorCliente[cli.id]||null;
+    const fatRef = cob?parseFloat(cob.valor_faturar||0):0;
+
+    // ── Modo persistido: extrato não está em memória ──
+    // Usa o status gravado no banco sem tentar casar com o extrato
+    if(semExtrato && cob){
+      const statusGravado = cob.status||'pendente';
+      if(statusGravado==='pago'||statusGravado==='divergente'){
+        // Cria um objeto txn sintético com os dados salvos para exibição
+        const txnSint = cob.txn_fitid ? {
+          fitid: cob.txn_fitid,
+          valor: cob.valor_pago||0,
+          memo: '(conciliado — carregue o extrato para detalhes)',
+          data: '', credito: true, cnpj_pagador:''
+        } : null;
+        return{cli,cob,txn:txnSint,status:statusGravado,fatRef,pago:parseFloat(cob.valor_pago||0),
+               manual:cob.txn_fitid?true:false,score:0,matchMethod:'💾 gravado',autoApplied:false,sugestoes:[],fromDB:true};
+      }
+      return{cli,cob,txn:null,status:'pendente',fatRef,pago:0,manual:false,score:0,matchMethod:'',sugestoes:[],fromDB:true};
+    }
+
+    // ── Modo normal: extrato em memória ──
+
+    // ── Respeita status gravado no banco mesmo sem vínculo (baixa manual) ──
+    if(cob && (cob.status==='pago'||cob.status==='divergente') && !vinculosMap[cob.id]){
+      const txnSint = cob.txn_fitid ? {
+        fitid: cob.txn_fitid, valor: cob.valor_pago||0,
+        memo: '(baixa manual)', data: '', credito: true, cnpj_pagador:''
+      } : { fitid: null, valor: cob.valor_pago||0,
+        memo: '(baixa manual — sem lançamento vinculado)', data: '', credito: true, cnpj_pagador:'' };
+      return{cli,cob,txn:txnSint,status:cob.status,fatRef,pago:parseFloat(cob.valor_pago||0),
+             manual:true,score:0,matchMethod:'↓ baixa manual',autoApplied:false,sugestoes:[],fromDB:true};
+    }
+
+    // Vínculo manual/existente
+    if(cob&&vinculosMap[cob.id]){
+      const txn=extrato.find(t=>t.fitid===vinculosMap[cob.id].txn_fitid);
+      if(txn){const ap=extrairApelido(txn.memo);if(ap)aprendizados.push({id:cli.id,apelido:ap,aliases:cli.aliases||[]});}
+      // Se o extrato está carregado mas o txn não foi encontrado (mês diferente),
+      // cai no status persistido do banco
+      if(!txn&&cob&&(cob.status==='pago'||cob.status==='divergente')){
+        const txnSint={fitid:cob.txn_fitid,valor:cob.valor_pago||0,
+          memo:'(pago em competência anterior)',data:'',credito:true,cnpj_pagador:''};
+        return{cli,cob,txn:txnSint,status:cob.status,fatRef,pago:parseFloat(cob.valor_pago||0),
+               manual:true,score:0,matchMethod:'💾 gravado',sugestoes:[],fromDB:true};
+      }
+      return{cli,cob,txn,status:txn?'pago':'pendente',fatRef,pago:parseFloat(txn?.valor||0),manual:true,score:0,matchMethod:'',sugestoes:[]};
+    }
+
+    // Auto match
+    const cnpjCli=cleanDigits(cli.cnpj||'');
+    const aliases=(cli.aliases||[]).map(a=>norm(a)).filter(Boolean);
+    const cliKw=kwds(cli.razao);
+    let best=null,bestScore=0;
+
+    for(const txn of creditosValidos){
+      if(usedFitids.has(txn.fitid))continue;
+      const mn=norm(txn.memo||'');
+      let score=0;
+      if(cnpjCli&&cnpjCli.length>=11&&txn.cnpj_pagador===cnpjCli)score+=200;
+      else if(cnpjCli&&cnpjCli.length>=11&&extractCNPJ(txn.memo)===cnpjCli)score+=100;
+      if(aliases.some(a=>a&&mn.includes(a)))score+=50;
+      const inter=cliKw.filter(w=>mn.split(' ').includes(w));
+      score+=inter.length*10;
+      if(inter.length>0&&cliKw[0]&&mn.includes(cliKw[0]))score+=5;
+      if(score===0&&fatRef>0){
+        const vfKey=Math.round(fatRef*100)/100;
+        const txnV=Math.round(parseFloat(txn.valor||0)*100)/100;
+        if(Math.abs(txnV-fatRef)/fatRef<=0.02&&contValoresCob[vfKey]===1&&contValoresExt[txnV]===1)score+=80;
+      }
+      if(score>bestScore){bestScore=score;best=txn;}
+    }
+
+    if(best&&bestScore>=10){
+      usedFitids.add(best.fitid);
+      const pago=parseFloat(best.valor||0);
+      const diff=fatRef>0?Math.abs(pago-fatRef):0;
+      const tol=fatRef>0?Math.max(0.1,fatRef*0.05):0;
+      const status=fatRef>0&&diff>tol?'divergente':'pago';
+      const mMethod=bestScore>=200?'CNPJ Pix':bestScore>=100?'CNPJ':bestScore>=80?'valor único':bestScore>=50?'🧠 apelido':'nome';
+      const ap=extrairApelido(best.memo);
+      if(ap)aprendizados.push({id:cli.id,apelido:ap,aliases:cli.aliases||[]});
+
+      if(bestScore>=200 && cob && !vinculosMap[cob.id]){
+        autoApplyQueue.push({cobId:cob.id, fitid:best.fitid, status, pago, clienteId:cli.id, apelido:ap, aliases:cli.aliases||[]});
+      }
+
+      return{cli,cob,txn:best,status,fatRef,pago,manual:false,score:bestScore,matchMethod:mMethod,autoApplied:bestScore>=200,sugestoes:[]};
+    }
+
+    // Sugestões por valor
+    const sugestoes=[];
+    if(fatRef>0){
+      creditosValidos.filter(t=>!usedFitids.has(t.fitid))
+        .filter(t=>Math.abs(parseFloat(t.valor||0)-fatRef)<=fatRef*0.15)
+        .sort((a,b)=>Math.abs(parseFloat(a.valor||0)-fatRef)-Math.abs(parseFloat(b.valor||0)-fatRef))
+        .slice(0,3).forEach(t=>sugestoes.push({txn:t,diff:parseFloat(t.valor||0)-fatRef}));
+    }
+    return{cli,cob,txn:null,status:'pendente',fatRef,pago:0,manual:false,score:0,matchMethod:'',sugestoes};
+  });
+
+  // ── PROCESSA AUTO-APPLY em background ──
+  // Score ≥ 200 = CNPJ direto via Pix = confiança máxima → salva sem confirmar
+  if(autoApplyQueue.length){
+    (async()=>{
+      let salvos=0;
+      for(const item of autoApplyQueue){
+        try{
+          await supaUpsert('vinculos',{venda_id:item.cobId,txn_fitid:item.fitid},'venda_id');
+          // Atualiza status da cobrança
+          await supaFetch('cobrancas?id=eq.'+item.cobId,{method:'PATCH',body:JSON.stringify({status:item.status,txn_fitid:item.fitid,valor_pago:item.pago}),prefer:'return=minimal'});
+          // Aprende apelido
+          if(item.apelido&&!item.aliases.some(a=>norm(a)===norm(item.apelido))){
+            const novosAl=[...item.aliases,item.apelido];
+            await supaPatch('clientes',item.clienteId,{aliases:novosAl});
+            const c=clientes.find(x=>x.id===item.clienteId);
+            if(c)c.aliases=novosAl;
+          }
+          salvos++;
+        }catch(e){}
+      }
+      if(salvos>0){
+        vinculos=await supaGet('vinculos','select=venda_id,txn_fitid');
+        toast(`⚡ ${salvos} pagamento${salvos>1?'s':''} conciliado${salvos>1?'s':''} automaticamente (CNPJ Pix)`,'ok');
+      }
+    })();
+  }
+
+  // Aprende apelidos
+  aprendizados.forEach(async a=>{
+    if(!a.apelido||a.aliases.some(x=>norm(x)===norm(a.apelido)))return;
+    try{await supaPatch('clientes',a.id,{aliases:[...a.aliases,a.apelido]});const c=clientes.find(x=>x.id===a.id);if(c)c.aliases=[...a.aliases,a.apelido];}catch(e){}
+  });
+
+  // Persiste status nas cobranças
+  concResult.filter(r=>r.cob&&r.txn).forEach(async r=>{
+    const ns=r.status==='divergente'?'divergente':'pago';
+    if(r.cob.status!==ns||r.cob.txn_fitid!==r.txn.fitid){
+      try{
+        await supaFetch('cobrancas?id=eq.'+r.cob.id,{method:'PATCH',body:JSON.stringify({status:ns,txn_fitid:r.txn.fitid,valor_pago:r.pago}),prefer:'return=minimal'});
+        r.cob.status=ns;r.cob.txn_fitid=r.txn.fitid;r.cob.valor_pago=r.pago;
+      }catch(e){}
+    }
+  });
+
+  // Alerta período
+  const datasExt=extrato.filter(t=>t.credito).map(t=>t.data||'').filter(Boolean);
+  const mesesExt=[...new Set(datasExt.map(d=>d.slice(0,7)))];
+  const banner=document.getElementById('banner-periodo');
+  if(compAtiva&&mesesExt.length&&!mesesExt.some(m=>m===compAtiva)){
+    banner.style.display='block';
+    banner.textContent=`⚠️ O extrato cobre ${mesesExt.join(', ')} mas a competência ativa é ${compAtiva}. Verifique se os períodos batem.`;
+  }else{banner.style.display='none';}
+
+  atualizarSummary();
+  renderHoje();
+  atualizarBannerCobranca();
+}
+
+function atualizarSummary(){
+  const total=concResult.length;
+  const ok=concResult.filter(r=>r.status==='pago').length;
+  const pend=concResult.filter(r=>r.status==='pendente').length;
+  const div=concResult.filter(r=>r.status==='divergente').length;
+  const valOk=concResult.filter(r=>r.status==='pago'||r.status==='divergente').reduce((s,r)=>s+(r.pago||0),0);
+  const valPend=concResult.filter(r=>r.status==='pendente').reduce((s,r)=>s+(r.fatRef||0),0);
+  document.getElementById('s-total').textContent=total;
+  document.getElementById('s-ok').textContent=ok+div;
+  document.getElementById('s-ok-val').textContent=brl(valOk);
+  document.getElementById('s-pend').textContent=pend;
+  document.getElementById('s-pend-val').textContent=valPend>0?brl(valPend):'—';
+  document.getElementById('s-div').textContent=div;
+
+  // Taxa de match + breakdown automático vs manual
+  const comCob=concResult.filter(r=>r.fatRef>0); // só quem tem cobrança nesta competência
+  const totalCom=comCob.length;
+  if(totalCom>0){
+    const matched=comCob.filter(r=>r.status!=='pendente').length;
+    const autoM=comCob.filter(r=>r.autoApplied).length;
+    const pct=Math.round(matched/totalCom*100);
+    const el=document.getElementById('s-match-rate');
+    el.textContent=pct+'%';
+    el.style.color=pct>=88?'var(--green)':pct>=70?'var(--amber)':'var(--red)';
+    document.getElementById('s-match-sub').textContent=autoM>0?`⚡ ${autoM} automático`:`${matched}/${totalCom} com cobrança`;
+    // Cor do card conforme benchmark 88%
+    const card=document.getElementById('s-match-card');
+    card.className='summary-card '+(pct>=88?'ok':pct>=70?'warn':'bad');
+  }
+
+  const badge=document.getElementById('badge-pendentes');
+  if(pend>0){badge.style.display='';badge.textContent=pend;}else{badge.style.display='none';}
+}
+
+function atualizarBannerCobranca(){
+  const pendentes=concResult.filter(r=>r.status==='pendente'&&r.fatRef>0);
+  const banner=document.getElementById('banner-cobranca');
+  if(pendentes.length>0){
+    banner.style.display='flex';
+    document.getElementById('cobranca-count').textContent=pendentes.length+' clientes';
+    const total=pendentes.reduce((s,r)=>s+r.fatRef,0);
+    document.getElementById('cobranca-val').textContent='Total: '+brl(total);
+  }else{banner.style.display='none';}
+}
+
+// ══════════════════════════════════════════════════
+// FILA DE REVISÃO RÁPIDA (Melhoria 1)
+// ══════════════════════════════════════════════════
+let filaRejeitados = new Set(); // fitids rejeitados nesta sessão
+
+function renderFilaRevisao(){
+  const el = document.getElementById('fila-revisao');
+  // Pendentes com sugestão (excluindo rejeitados)
+  const itens = concResult.filter(r =>
+    r.status==='pendente' &&
+    r.sugestoes && r.sugestoes.length>0 &&
+    !filaRejeitados.has(r.cli.id+'|'+r.sugestoes[0].txn.fitid)
+  );
+
+  if(!itens.length){ el.style.display='none'; return; }
+  el.style.display='block';
+
+  el.innerHTML=`<div class="fila-section">
+    <div class="fila-header">
+      <div class="fila-title">⚡ Fila de revisão rápida — ${itens.length} sugestão${itens.length>1?'ões':''} aguardando</div>
+      <div class="fila-progress" title="Aprove ou rejeite cada item em ~10 segundos">Revise sem abrir modal</div>
+    </div>
+    ${itens.slice(0,10).map(r => {
+      const s = r.sugestoes[0]; // melhor sugestão
+      const diffPct = r.fatRef>0 ? Math.round(Math.abs(s.diff)/r.fatRef*100) : 0;
+      const nomeExibir = extrairApelido(s.txn.memo)
+        || (s.txn.cnpj_pagador ? s.txn.cnpj_pagador.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/,'$1.$2.$3/$4-$5') : null)
+        || s.txn.memo?.slice(0,40) || '—';
+      const diffCls = diffPct<=2?'exato':'proximo';
+      const diffLabel = diffPct<=2?'exato':'≈'+diffPct+'%';
+      return `<div class="fila-item" id="fila-${r.cli.id}">
+        <div class="fila-side">
+          <div class="fila-side-label">Pendente</div>
+          <div class="fila-side-name" title="${r.cli.razao}">${r.cli.razao}</div>
+          <div class="fila-side-val">${brl(r.fatRef)}</div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:4px">
+          <div class="fila-arrow">→</div>
+          <span class="fila-diff ${diffCls}">${diffLabel}</span>
+        </div>
+        <div class="fila-side">
+          <div class="fila-side-label">Crédito no extrato · ${dateStr(s.txn.data)}</div>
+          <div class="fila-side-name" title="${nomeExibir}">${nomeExibir}</div>
+          <div class="fila-side-val">${brl(parseFloat(s.txn.valor||0))}</div>
+        </div>
+        <div class="fila-actions">
+          <button class="btn-aprovar" onclick="filaAprovar('${r.cli.id}','${s.txn.fitid}')">✓ Aprovar</button>
+          <button class="btn-rejeitar" onclick="filaRejeitar('${r.cli.id}','${s.txn.fitid}')">✕ Rejeitar</button>
+        </div>
+      </div>`;
+    }).join('')}
+    ${itens.length>10?`<div style="padding:10px 16px;font-size:11px;color:var(--ink3);text-align:center">+${itens.length-10} mais itens — aparecerão conforme você revisa</div>`:''}
+  </div>`;
+}
+
+async function filaAprovar(clienteId, fitid){
+  const el = document.getElementById('fila-'+clienteId);
+  if(el){ el.classList.add('fila-done'); el.style.opacity='.3'; }
+  await vincularSugestaoSilencioso(clienteId, fitid);
+}
+
+function filaRejeitar(clienteId, fitid){
+  const el = document.getElementById('fila-'+clienteId);
+  if(el){
+    el.style.transition='opacity .2s';
+    el.style.opacity='0';
+    setTimeout(()=>{ el.style.display='none'; },200);
+  }
+  filaRejeitados.add(clienteId+'|'+fitid);
+  // Remove da lista de sugestões para não aparecer novamente nesta sessão
+  const r = concResult.find(x=>x.cli.id===clienteId);
+  if(r) r.sugestoes = r.sugestoes.filter(s=>s.txn.fitid!==fitid);
+  renderFilaRevisao();
+}
+
+// Versão silenciosa do vincularSugestao (sem confirm, sem toast duplo)
+async function vincularSugestaoSilencioso(clienteId, fitid){
+  const cli=clientes.find(c=>c.id===clienteId);
+  const txn=extrato.find(t=>t.fitid===fitid);
+  if(!cli||!txn) return;
+  const pago=parseFloat(txn.valor||0);
+  const fatRef=parseFloat(cli.valor_faturar||0)||parseFloat(cli.mensalidade||0)||0;
+  try{
+    const vendaId = await garantirVenda(clienteId, fatRef||pago, cli);
+    await supaUpsert('vinculos',{venda_id:vendaId,txn_fitid:fitid},'venda_id');
+    const ap=extrairApelido(txn.memo);
+    if(ap&&!(cli.aliases||[]).some(a=>norm(a)===norm(ap))){
+      await supaPatch('clientes',clienteId,{aliases:[...(cli.aliases||[]),ap]});
+      cli.aliases=[...(cli.aliases||[]),ap];
+    }
+    vinculos=await supaGet('vinculos','select=venda_id,txn_fitid');
+    toast(`✓ ${cli.razao.slice(0,30)} vinculado!`,'ok');
+    rodarConciliacao();
+  }catch(e){ toast('Erro: '+e.message,'err'); }
+}
+
+// ══════════════════════════════════════════════════
+// INADIMPLÊNCIA (helpers para Melhoria 2)
+// ══════════════════════════════════════════════════
+function calcInadimplencia(clienteId){
+  const cobsCli = cobrancas.filter(c=>c.cliente_id===clienteId);
+  if(!cobsCli.length) return null;
+  const total = cobsCli.length;
+  const pagas = cobsCli.filter(c=>c.status==='pago').length;
+  const pendentes = cobsCli.filter(c=>c.status==='pendente').length;
+  const valorEmAberto = cobsCli.filter(c=>c.status==='pendente').reduce((s,c)=>s+(parseFloat(c.valor_faturar)||0),0);
+  return { total, pagas, pendentes, valorEmAberto, taxa: Math.round(pagas/total*100) };
+}
+
+function inadimplBadgeHtml(info){
+  if(!info||info.total<2) return ''; // menos de 2 meses = sem histórico relevante
+  const pct = info.taxa;
+  const cls = pct>=90?'ok':pct>=60?'warn':'bad';
+  return `<span class="inadimpl-badge ${cls}" title="Histórico: ${info.pagas}/${info.total} meses pagos">${info.pagas}/${info.total} meses</span>`;
+}
+
+// Calcula score de risco (para ordenação da cobrança)
+function calcRisco(r){
+  const inadimpl = calcInadimplencia(r.cli.id);
+  const taxaPag = inadimpl ? inadimpl.taxa/100 : 1;
+  const valorFat = r.fatRef || 0;
+  // Risco = valor × (1 - taxa de pagamento histórica)
+  return valorFat * (1 - taxaPag);
+}
+
+// ══════════════════════════════════════════════════
+// RENDER HOJE
+// ══════════════════════════════════════════════════
+function setFiltHoje(f,btn){filtHoje=f;pagHojePage=0;document.querySelectorAll('#page-hoje .filter-pill').forEach(b=>b.classList.remove('on'));btn.classList.add('on');renderHoje();}
+function pagHoje(d){const rows=getFiltHoje();const max=Math.max(0,Math.ceil(rows.length/PER)-1);pagHojePage=Math.max(0,Math.min(max,pagHojePage+d));renderHoje();}
+
+function getFiltHoje(){
+  const q=norm(document.getElementById('search-hoje').value);
+  return concResult.filter(r=>{
+    if(filtHoje==='pago'&&r.status!=='pago')return false;
+    if(filtHoje==='pendente'&&r.status!=='pendente')return false;
+    if(filtHoje==='divergente'&&r.status!=='divergente')return false;
+    if(q&&!norm(r.cli.razao+' '+(r.cli.cnpj||'')).includes(q))return false;
+    return true;
+  });
+}
+
+function renderHoje(){
+  // ── Fila de revisão rápida ──
+  renderFilaRevisao();
+
+  const rows=getFiltHoje();
+  const total=concResult.length;
+  document.getElementById('list-title').textContent=rows.length+' de '+total+' clientes';
+  const max=Math.max(0,Math.ceil(rows.length/PER)-1);
+  pagHojePage=Math.min(pagHojePage,max);
+  const slice=rows.slice(pagHojePage*PER,(pagHojePage+1)*PER);
+  const lista=document.getElementById('lista-hoje');
+
+  if(!concResult.length){
+    lista.innerHTML=`<div class="empty-state"><div class="icon">🏦</div><p>Importe o extrato do dia para começar</p><small>Arraste o arquivo TXT do Banco do Brasil na área acima</small></div>`;
+    document.getElementById('pag-hoje-info').textContent='';return;
+  }
+  if(!slice.length){lista.innerHTML=`<div class="empty-state"><div class="icon">✓</div><p>Nenhum resultado para este filtro</p></div>`;return;}
+
+  lista.innerHTML=slice.map(r=>{
+    const statusClass=r.status==='pago'?'ok':r.status==='divergente'?'warn':'bad';
+    const statusLabel=r.status==='pago'?'✓ Pago':r.status==='divergente'?'⚠ Divergente':'✗ Pendente';
+    const diff=r.txn&&r.fatRef>0?r.pago-r.fatRef:null;
+    const diffHtml=diff!==null&&Math.abs(diff)>0.05?`<span style="font-size:10px;color:${diff>0?'var(--green)':'var(--red)'};font-family:var(--mono);margin-left:4px">${diff>0?'+':''}${brl(diff)}</span>`:'';
+
+    // ── Melhoria 4: Razão do match ──
+    let matchReasonHtml='';
+    if(r.txn&&r.matchMethod){
+      let icon, desc;
+      if(r.fromDB){
+        icon='💾'; desc='Status carregado do banco — importe o extrato para reprocessar';
+      } else {
+        icon=r.score>=200?'🔑':r.score>=100?'📋':r.score>=80?'💰':r.score>=50?'🏷️':'🔤';
+        desc=r.score>=200?'CNPJ idêntico via Pix direto':r.score>=100?'CNPJ encontrado no memo':r.score>=80?'Valor único — nenhuma outra correspondência':r.score>=50?`Apelido no extrato: "${extrairApelido(r.txn.memo)||r.matchMethod}"`:r.score>0?'Palavras-chave do nome':'';
+      }
+      if(desc) matchReasonHtml=`<div class="match-reason"><span class="match-reason-icon">${icon}</span>${desc}</div>`;
+    }
+
+    // ── Sugestões por valor para pendentes ──
+    let sugestoesHtml='';
+    if(r.status==='pendente'&&r.sugestoes&&r.sugestoes.length>0){
+      const itens=r.sugestoes.map(s=>{
+        const diffPct=Math.round(Math.abs(s.diff)/r.fatRef*100);
+        const diffStr=Math.abs(s.diff)<0.05?'exato':s.diff>0?`+${brl(s.diff)}`:`${brl(s.diff)}`;
+        const nomeExibir = extrairApelido(s.txn.memo)
+          || (s.txn.cnpj_pagador ? s.txn.cnpj_pagador.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/,'$1.$2.$3/$4-$5') : null)
+          || s.txn.memo?.slice(0,40)
+          || '—';
+        return`<div onclick="vincularSugestao('${r.cli.id}','${s.txn.fitid}')"
+          style="display:flex;align-items:center;gap:8px;padding:5px 8px;border-radius:6px;cursor:pointer;background:var(--surface2);margin-bottom:3px;transition:background .1s"
+          onmouseover="this.style.background='var(--amber-pill)'" onmouseout="this.style.background='var(--surface2)'">
+          <span style="font-size:10px;background:var(--amber-bg);color:var(--amber);padding:1px 6px;border-radius:10px;flex-shrink:0;font-weight:500">≈${diffPct}%</span>
+          <span style="font-size:11px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink2)">${nomeExibir}</span>
+          <span style="font-size:11px;font-family:var(--mono);color:var(--green);flex-shrink:0">${brl(parseFloat(s.txn.valor||0))}</span>
+          <span style="font-size:10px;color:var(--ink3);flex-shrink:0">${diffStr}</span>
+        </div>`;
+      }).join('');
+      sugestoesHtml=`<div style="margin-top:6px;padding:6px 8px;background:var(--amber-bg);border:1px solid var(--amber-pill);border-radius:7px">
+        <div style="font-size:10px;font-weight:600;color:var(--amber);margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em">💡 Créditos com valor próximo — clique para vincular</div>
+        ${itens}
+      </div>`;
+    }
+
+    return`<div class="action-card" style="flex-direction:column;align-items:stretch;gap:8px">
+      <div style="display:flex;align-items:center;gap:12px">
+        <div class="status-dot ${statusClass}"></div>
+        <div class="action-card-body">
+          <div class="action-name">${r.cli.razao}</div>
+          <div class="action-cnpj">${r.cli.cnpj||'sem CNPJ'}</div>
+          ${r.txn?`<div class="action-match">↳ ${extrairApelido(r.txn.memo)||(r.txn.cnpj_pagador?r.txn.cnpj_pagador.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/,'$1.$2.$3/$4-$5'):r.txn.memo)||''} · ${dateStr(r.txn.data)}</div>`:''}
+          ${matchReasonHtml}
+        </div>
+        <div class="action-values">
+          ${r.txn?`<div class="action-val-pago">${brl(r.pago)}${diffHtml}</div>`:''}
+          ${r.fatRef>0?`<div class="action-val-cobr">prev. ${brl(r.fatRef)}</div>`:''}
+          ${!r.txn&&r.fatRef>0?`<div class="action-val-pend">${brl(r.fatRef)}</div>`:''}
+        </div>
+        <div class="action-badge ${statusClass}">${statusLabel}</div>
+        <div class="action-card-actions">
+          ${!r.txn?`<button class="btn xs" onclick="abrirVincular('${r.cli.id}')" title="Vincular manualmente">🔗</button>`:''}
+          <button class="btn xs" onclick="abrirApelido('${r.cli.id}')" title="Gerenciar apelidos BB">✏</button>
+        </div>
+      </div>
+      ${sugestoesHtml}
+    </div>`;
+  }).join('');
+
+  document.getElementById('pag-hoje-info').textContent=slice.length+' de '+rows.length;
+  document.getElementById('pag-prev').disabled=pagHojePage===0;
+  document.getElementById('pag-next').disabled=pagHojePage>=max;
+}
+
+// ══════════════════════════════════════════════════
+// VINCULAR
+// ══════════════════════════════════════════════════
+function abrirVincular(clienteId){
+  vinculandoClienteId=clienteId;
+  const cli=clientes.find(c=>c.id===clienteId);
+  // Busca valores sempre da cobrança ativa
+  const cob=cobrancas.find(c=>c.cliente_id===clienteId&&c.competencia===compAtiva);
+  const fatRef=cob?parseFloat(cob.valor_faturar||0):0;
+  const mens=cob?parseFloat(cob.mensalidade||0):0;
+  const exc=cob?parseInt(cob.excedentes||0):0;
+  const vlrExc=cob?parseFloat(cob.valor_excedente||0):0;
+  const compLabel=compAtiva?compAtiva.split('-').reverse().join('/'):'';
+
+  document.getElementById('modal-vincular-info').innerHTML=`
+    <div style="font-size:11px;color:var(--ink3);margin-bottom:4px">Cliente · ${compLabel}</div>
+    <div style="font-weight:600">${cli?.razao||'—'}</div>
+    <div style="font-size:12px;color:var(--ink3);font-family:var(--mono)">${cli?.cnpj||''}</div>
+    ${fatRef>0?`<div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+      <div style="background:var(--surface2);border-radius:6px;padding:2px 10px;font-size:11px">
+        Mensalidade <span style="font-family:var(--mono);font-weight:600">${brl(mens)}</span>
+      </div>
+      ${exc>0?`<div style="background:var(--amber-bg);border-radius:6px;padding:2px 10px;font-size:11px;color:var(--amber)">
+        ${exc}× excedente <span style="font-family:var(--mono);font-weight:600">${brl(vlrExc)}</span>
+      </div>`:''}
+      <div style="background:var(--green-bg);border-radius:6px;padding:2px 10px;font-size:11px;color:var(--green)">
+        Total esperado <span style="font-family:var(--mono);font-weight:600">${brl(fatRef)}</span>
+      </div>
+    </div>`:'<div style="font-size:11px;color:var(--amber);margin-top:4px">Sem cobrança nesta competência</div>'}`;
+
+  // Ordena créditos: primeiro os de valor próximo, depois os demais por data
+  const creds=extrato.filter(t=>t.credito&&parseFloat(t.valor||0)<=VALOR_MAX);
+  const comValor=fatRef>0?[...creds].sort((a,b)=>{
+    const da=Math.abs(parseFloat(a.valor||0)-fatRef);
+    const db=Math.abs(parseFloat(b.valor||0)-fatRef);
+    return da-db;
+  }):creds.sort((a,b)=>(b.data||'').localeCompare(a.data||''));
+
+  document.getElementById('txn-list').innerHTML=comValor.length?comValor.slice(0,80).map(t=>{
+    const v=parseFloat(t.valor||0);
+    const diffPct=fatRef>0?Math.round(Math.abs(v-fatRef)/fatRef*100):null;
+    const isProx=diffPct!==null&&diffPct<=15;
+    const badge=diffPct!==null?`<span style="font-size:9px;padding:1px 5px;border-radius:8px;flex-shrink:0;font-weight:500;background:${diffPct<=2?'var(--green-pill);color:var(--green)':diffPct<=15?'var(--amber-pill);color:var(--amber)':'var(--surface2);color:var(--ink3)'}">${diffPct<=2?'exato':diffPct+'%'}</span>`:'';
+    return`<label class="txn-item" style="${isProx?'background:var(--amber-bg)':''}" title="${isProx?'Valor próximo do esperado':''}">
+      <input type="radio" name="vtxn" value="${t.fitid}" style="flex-shrink:0">
+      <div style="flex:1;min-width:0">
+        <div class="txn-memo">${extrairApelido(t.memo)||(t.cnpj_pagador?t.cnpj_pagador.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/,'$1.$2.$3/$4-$5'):t.memo)||'—'}</div>
+        <div class="txn-date">${dateStr(t.data)}</div>
+      </div>
+      ${badge}
+      <div class="txn-val">${brl(v)}</div>
+    </label>`;
+  }).join(''):'<div style="text-align:center;padding:20px;color:var(--ink3)">Nenhum extrato importado — importe o extrato do BB primeiro</div>';
+  openModal('modal-vincular');
+}
+
+// ── Helper: garante que existe uma cobrança para o cliente na competência ativa ──
+async function garantirVenda(clienteId, valor, cli){
+  // Busca cobrança existente na competência ativa
+  const cobExist = cobrancas.find(c=>c.cliente_id===clienteId&&c.competencia===compAtiva);
+  if(cobExist) return cobExist.id;
+  // Cria nova cobrança nesta competência
+  const res = await supaPost('cobrancas',{
+    cliente_id:  clienteId,
+    competencia: compAtiva||new Date().toISOString().slice(0,7),
+    mensalidade: valor||0,
+    valor_faturar:valor||0,
+    status:      'pendente'
+  });
+  const novaCob = Array.isArray(res)?res[0]:res;
+  cobrancas.push(novaCob);
+  return novaCob.id;
+}
+
+async function confirmarVinculo(){
+  const sel=document.querySelector('input[name="vtxn"]:checked');
+  if(!sel){toast('Selecione um lançamento','err');return}
+  const cli=clientes.find(c=>c.id===vinculandoClienteId);
+  try{
+    // Sempre da cobrança ativa, não do cadastro
+    const cob=cobrancas.find(c=>c.cliente_id===vinculandoClienteId&&c.competencia===compAtiva);
+    const fatRef=cob?parseFloat(cob.valor_faturar||0):0;
+    const txn=extrato.find(t=>t.fitid===sel.value);
+    const pago=parseFloat(txn?.valor||0);
+    const vendaId=await garantirVenda(vinculandoClienteId,fatRef||pago,cli);
+    await supaUpsert('vinculos',{venda_id:vendaId,txn_fitid:sel.value},'venda_id');
+    if(txn){
+      const ap=extrairApelido(txn.memo);
+      if(ap&&cli&&!(cli.aliases||[]).some(a=>norm(a)===norm(ap))){
+        await supaPatch('clientes',vinculandoClienteId,{aliases:[...(cli.aliases||[]),ap]});
+        cli.aliases=[...(cli.aliases||[]),ap];
+      }
+    }
+    vinculos=await supaGet('vinculos','select=venda_id,txn_fitid');
+    closeModal('modal-vincular');
+    rodarConciliacao();
+    renderClientes();
+    toast('Vínculo salvo! Apelido aprendido.','ok');
+  }catch(e){toast('Erro: '+e.message,'err');}
+}
+
+// ── Vincular direto pela sugestão de valor ──
+async function vincularSugestao(clienteId, fitid){
+  const cli=clientes.find(c=>c.id===clienteId);
+  const txn=extrato.find(t=>t.fitid===fitid);
+  if(!cli||!txn)return;
+  const pago=parseFloat(txn.valor||0);
+  const fatRef=parseFloat(cli.valor_faturar||0)||parseFloat(cli.mensalidade||0)||0;
+  const diff=fatRef>0?Math.round(Math.abs(pago-fatRef)/fatRef*100):0;
+  const nomeExibir=extrairApelido(txn.memo)||txn.memo||'—';
+  if(!confirm(`Vincular "${nomeExibir.slice(0,50)}" (${brl(pago)}) ao cliente "${cli.razao}"?${diff>0?`\n\nDiferença de ${diff}% em relação ao valor esperado (${brl(fatRef)}).`:''}`))return;
+  try{
+    // FIX BUG 2: garante que existe uma venda para este cliente antes de criar o vínculo
+    const vendaId = await garantirVenda(clienteId, fatRef||pago, cli);
+    await supaUpsert('vinculos',{venda_id:vendaId,txn_fitid:fitid},'venda_id');
+    const ap=extrairApelido(txn.memo);
+    if(ap&&!(cli.aliases||[]).some(a=>norm(a)===norm(ap))){
+      await supaPatch('clientes',clienteId,{aliases:[...(cli.aliases||[]),ap]});
+      cli.aliases=[...(cli.aliases||[]),ap];
+      toast(`✓ Vinculado! Apelido "${ap}" aprendido.`,'ok');
+    }else{toast('✓ Vinculado!','ok');}
+    vinculos=await supaGet('vinculos','select=venda_id,txn_fitid');
+    rodarConciliacao();
+  }catch(e){toast('Erro: '+e.message,'err');}
+}
+// ══════════════════════════════════════════════════
+function abrirApelido(clienteId){
+  vinculandoClienteId=clienteId;
+  const cli=clientes.find(c=>c.id===clienteId);
+  document.getElementById('modal-ap-title').textContent='Apelidos — '+cli?.razao;
+  document.getElementById('modal-ap-cli').innerHTML=`<div style="font-size:11px;color:var(--ink3);margin-bottom:6px">Apelidos cadastrados</div><div>${(cli?.aliases||[]).map(a=>`<span class="alias-tag">${a}</span>`).join('')||'<span class="no-alias">nenhum — clique em um lançamento abaixo para adicionar</span>'}</div>`;
+  document.getElementById('ap-search').value='';
+  renderApelidoList();
+  openModal('modal-apelido');
+}
+
+function renderApelidoList(){
+  const q=norm(document.getElementById('ap-search').value);
+  const creds=extrato.filter(t=>t.credito&&parseFloat(t.valor||0)<=VALOR_MAX).filter(t=>!q||norm(t.memo||'').includes(q)).sort((a,b)=>(b.data||'').localeCompare(a.data||'')).slice(0,60);
+  document.getElementById('ap-list').innerHTML=creds.length?creds.map(t=>{
+    const nomeClean=extrairApelido(t.memo)||(t.cnpj_pagador?t.cnpj_pagador.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/,'$1.$2.$3/$4-$5'):null)||t.memo||'';
+    if(!nomeClean)return'';
+    return`<div class="txn-item" onclick="adicionarApelido('${vinculandoClienteId}','${nomeClean.replace(/'/g,"\\'")}')">
+      <div style="flex:1;min-width:0"><div class="txn-memo">${nomeClean}</div><div class="txn-date">${dateStr(t.data)}</div></div>
+      <div class="txn-val">${brl(parseFloat(t.valor||0))}</div>
+      <span style="font-size:11px;color:var(--ink3);flex-shrink:0">+ salvar</span>
+    </div>`;
+  }).filter(Boolean).join(''):'<div style="text-align:center;padding:20px;color:var(--ink3)">Nenhum lançamento</div>';
+}
+
+async function adicionarApelido(clienteId,apelido){
+  if(!apelido)return;
+  const cli=clientes.find(c=>c.id===clienteId);
+  if(!cli)return;
+  if((cli.aliases||[]).some(a=>norm(a)===norm(apelido))){toast('Apelido já cadastrado');return;}
+  try{
+    const novosAliases=[...(cli.aliases||[]),apelido];
+    await supaPatch('clientes',clienteId,{aliases:novosAliases});
+    cli.aliases=novosAliases;
+    document.getElementById('modal-ap-cli').innerHTML=`<div style="font-size:11px;color:var(--ink3);margin-bottom:6px">Apelidos cadastrados</div><div>${novosAliases.map(a=>`<span class="alias-tag">${a}</span>`).join('')}</div>`;
+    toast('Apelido "'+apelido+'" salvo!','ok');
+    rodarConciliacao();
+  }catch(e){toast('Erro: '+e.message,'err');}
+}
+
+// ══════════════════════════════════════════════════
+// CLIENTES
+// ══════════════════════════════════════════════════
+function setFiltCli(f,btn){filtCli=f;pagCliPage=0;document.querySelectorAll('#page-clientes .filter-pill').forEach(b=>b.classList.remove('on'));btn.classList.add('on');renderClientes();}
+function pagCli(d){const rows=getFiltCli();const max=Math.max(0,Math.ceil(rows.length/PER)-1);pagCliPage=Math.max(0,Math.min(max,pagCliPage+d));renderClientes();}
+function getFiltCli(){
+  const q=norm(document.getElementById('search-clientes').value);
+  return clientes.filter(c=>{
+    if(filtCli==='sem-alias'&&(c.aliases||[]).length>0)return false;
+    if(filtCli==='excedentes'&&parseInt(c.excedentes||0)<=0)return false;
+    if(filtCli==='sem-valor'&&(parseFloat(c.valor_faturar||0)>0||parseFloat(c.mensalidade||0)>0))return false;
+    if(filtCli==='inadimplentes'){
+      const inadimpl=calcInadimplencia(c.id);
+      if(!inadimpl||inadimpl.pendentes===0)return false;
+    }
+    if(q&&!norm(c.razao+' '+(c.cnpj||'')+' '+(c.aliases||[]).join(' ')).includes(q))return false;
+    return true;
+  });
+}
+function renderClientes(){
+  const rows=getFiltCli();
+  const max=Math.max(0,Math.ceil(rows.length/PER)-1);
+  pagCliPage=Math.min(pagCliPage,max);
+  const slice=rows.slice(pagCliPage*PER,(pagCliPage+1)*PER);
+  const lista=document.getElementById('lista-clientes');
+  if(!slice.length){lista.innerHTML=`<div class="empty-state"><div class="icon">◎</div><p>Nenhum cliente encontrado</p></div>`;document.getElementById('pag-cli-info').textContent='';return;}
+
+  // Mapa cobrança da competência ativa por cliente
+  const cobMap = {};
+  cobrancas.filter(c=>c.competencia===compAtiva).forEach(c=>cobMap[c.cliente_id]=c);
+
+  lista.innerHTML=slice.map(c=>{
+    // ── Valores sempre vindos da cobrança do mês ativo ──
+    const cob = cobMap[c.id] || null;
+    const mens   = parseFloat(cob?.mensalidade   || 0);
+    const exc    = parseInt(cob?.excedentes      || 0);
+    const vlrExc = parseFloat(cob?.valor_excedente || 0);
+    const fat    = parseFloat(cob?.valor_faturar  || 0);
+    const cobStatus = cob?.status || null;
+    const temValores = mens > 0 || fat > 0;
+
+    // ── Histórico de inadimplência ──
+    const inadimpl = calcInadimplencia(c.id);
+    const inadimplHtml = inadimplBadgeHtml(inadimpl);
+
+    // ── Badge de status da conciliação nesta competência ──
+    const statusBadgeHtml = cobStatus === 'pago'
+      ? `<span style="font-size:10px;background:var(--green-pill);color:var(--green);padding:2px 8px;border-radius:10px;font-weight:600">✓ Pago</span>`
+      : cobStatus === 'divergente'
+      ? `<span style="font-size:10px;background:var(--amber-pill);color:var(--amber);padding:2px 8px;border-radius:10px;font-weight:600">⚠ Divergente</span>`
+      : cob
+      ? `<span style="font-size:10px;background:var(--red-pill);color:var(--red);padding:2px 8px;border-radius:10px;font-weight:600">✗ Pendente</span>`
+      : '';
+
+    const valoresHtml = temValores ? `
+      <div style="display:flex;gap:8px;margin-top:6px;flex-wrap:wrap;align-items:center">
+        <div style="background:var(--surface2);border-radius:6px;padding:3px 10px;font-size:11px">
+          <span style="color:var(--ink3)">Mensalidade </span>
+          <span style="font-family:var(--mono);font-weight:500">${brl(mens)}</span>
+        </div>
+        ${exc > 0 ? `<div style="background:var(--amber-bg);border-radius:6px;padding:3px 10px;font-size:11px">
+          <span style="color:var(--amber)">Excedentes </span>
+          <span style="font-family:var(--mono);font-weight:500;color:var(--amber)">${exc}× ${brl(vlrExc)}</span>
+        </div>
+        <div style="background:var(--green-bg);border-radius:6px;padding:3px 10px;font-size:11px">
+          <span style="color:var(--green)">Total </span>
+          <span style="font-family:var(--mono);font-weight:600;color:var(--green)">${brl(fat)}</span>
+        </div>` : fat > 0 ? `<div style="background:var(--green-bg);border-radius:6px;padding:3px 10px;font-size:11px">
+          <span style="color:var(--green)">Faturar </span>
+          <span style="font-family:var(--mono);font-weight:600;color:var(--green)">${brl(fat)}</span>
+        </div>` : ''}
+        ${statusBadgeHtml}
+        ${inadimplHtml}
+        ${inadimpl && inadimpl.pendentes > 0 ? `<span style="font-size:10px;color:var(--red);font-family:var(--mono)">${inadimpl.pendentes} mês${inadimpl.pendentes>1?'es':''} em aberto</span>` : ''}
+      </div>` : `<div style="font-size:11px;color:var(--ink3);margin-top:4px">Sem cobrança em ${compAtiva||'competência ativa'} — importe a planilha CIOT</div>`;
+
+    // ── Botão Baixar: dá baixa direta sem abrir modal ──
+    const btnConciliar = cobStatus === 'pago'
+      ? `<button class="btn xs" style="background:var(--green-bg);color:var(--green);border-color:var(--green-pill);opacity:.6;cursor:default" disabled>✓ Pago</button>`
+      : `<button class="btn xs" style="background:var(--green);color:#fff;border-color:var(--green);white-space:nowrap"
+           onclick="darBaixaCliente('${c.id}')" title="Marcar como pago nesta competência">↓ Baixar</button>`;
+
+    return `<div class="cli-card">
+      <div class="cli-info">
+        <div class="cli-name">${c.razao}</div>
+        <div class="cli-cnpj">${c.cnpj||'sem CNPJ'}</div>
+        ${valoresHtml}
+        <div class="cli-aliases" style="margin-top:6px">${(c.aliases||[]).length ? c.aliases.map(a=>`<span class="alias-tag">${a}</span>`).join('') : '<span class="no-alias">⚠ sem apelido cadastrado</span>'}</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:5px;align-self:flex-start;flex-shrink:0">
+        ${btnConciliar}
+        <button class="btn xs" onclick="editCliente('${c.id}')">✏ Editar</button>
+        <button class="btn xs" onclick="abrirApelido('${c.id}')">+ Apelido BB</button>
+        <button class="btn xs" style="color:var(--red);border-color:var(--red-pill)" onclick="deleteCliente('${c.id}')">✕</button>
+      </div>
+    </div>`;
+  }).join('');
+  document.getElementById('pag-cli-info').textContent=slice.length+' de '+rows.length;
+  document.getElementById('pag-cli-prev').disabled=pagCliPage===0;
+  document.getElementById('pag-cli-next').disabled=pagCliPage>=max;
+}
+
+// Dá baixa direta no cliente sem precisar do lançamento do extrato
+async function darBaixaCliente(clienteId){
+  const cli = clientes.find(c=>c.id===clienteId);
+  if(!cli) return;
+  const cob = cobrancas.find(c=>c.cliente_id===clienteId&&c.competencia===compAtiva);
+  const fat = cob ? parseFloat(cob.valor_faturar||0) : 0;
+  const compLabel = compAtiva ? compAtiva.split('-').reverse().join('/') : '';
+
+  if(!confirm(`Dar baixa para "${cli.razao}"?\n\nCompetência: ${compLabel}\nValor: ${brl(fat)}\n\nO pagamento será marcado como identificado.`)) return;
+
+  try {
+    // Garante cobrança e atualiza status direto para pago
+    const cobId = cob ? cob.id : await garantirVenda(clienteId, fat, cli);
+    await supaFetch('cobrancas?id=eq.'+cobId, {
+      method: 'PATCH',
+      body: JSON.stringify({ status:'pago', valor_pago: fat }),
+      prefer: 'return=minimal'
+    });
+    // Atualiza em memória
+    const cobMem = cobrancas.find(c=>c.id===cobId);
+    if(cobMem){ cobMem.status='pago'; cobMem.valor_pago=fat; }
+    toast(`✓ Baixa dada — ${cli.razao.slice(0,30)}`, 'ok');
+    rodarConciliacao();
+    renderClientes();
+  } catch(e) {
+    toast('Erro: '+e.message, 'err');
+  }
+}
+
+// Abre o modal de conciliação centrado no CLIENTE (a partir da aba Clientes)
+function abrirConciliarPorCliente(clienteId){
+  const cli = clientes.find(c=>c.id===clienteId);
+  if(!cli){ toast('Cliente não encontrado','err'); return; }
+
+  const cob = cobrancas.find(c=>c.cliente_id===clienteId&&c.competencia===compAtiva);
+  const fatRef = cob ? parseFloat(cob.valor_faturar||0) : 0;
+  const mens   = cob ? parseFloat(cob.mensalidade||0)   : 0;
+  const exc    = cob ? parseInt(cob.excedentes||0)       : 0;
+  const vlrExc = cob ? parseFloat(cob.valor_excedente||0): 0;
+
+  if(!extrato.filter(t=>t.credito).length){
+    toast('Importe o extrato do BB antes de conciliar','err'); return;
+  }
+
+  // Monta o painel do lançamento reutilizando o modal existente
+  // mas orientado pelo cliente: mostra os créditos mais próximos do valor
+  const compLabel = compAtiva ? compAtiva.split('-').reverse().join('/') : '';
+  document.getElementById('mce-lancamento').innerHTML = `
+    <div style="font-size:11px;color:var(--ink3);margin-bottom:4px">Cliente · ${compLabel}</div>
+    <div style="font-weight:600;font-size:14px">${cli.razao}</div>
+    <div style="font-size:12px;color:var(--ink3);font-family:var(--mono)">${cli.cnpj||'sem CNPJ'}</div>
+    <div style="display:flex;gap:10px;margin-top:8px;flex-wrap:wrap">
+      ${mens>0?`<div style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:3px 10px;font-size:11px">
+        Mensalidade <span style="font-family:var(--mono);font-weight:600">${brl(mens)}</span>
+      </div>`:''}
+      ${exc>0?`<div style="background:var(--amber-bg);border:1px solid var(--amber-pill);border-radius:6px;padding:3px 10px;font-size:11px;color:var(--amber)">
+        ${exc}× excedente <span style="font-family:var(--mono);font-weight:600">${brl(vlrExc)}</span>
+      </div>`:''}
+      ${fatRef>0?`<div style="background:var(--green-bg);border:1px solid var(--green-pill);border-radius:6px;padding:3px 10px;font-size:11px;color:var(--green)">
+        Total a pagar <span style="font-family:var(--mono);font-weight:600">${brl(fatRef)}</span>
+      </div>`:''}
+    </div>`;
+
+  // Reutiliza mceAtual mas com valor do cliente
+  mceAtual = { fitid: null, valor: fatRef, memo: cli.razao, cod: null, data: null, clienteId };
+  document.getElementById('mce-search').value = '';
+  renderConciliarExtrato();
+  openModal('modal-conciliar-extrato');
+}
+
+async function saveCliente(){
+  const razao=document.getElementById('c-razao').value.trim();
+  if(!razao){toast('Informe a Razão Social','err');return}
+  const id=document.getElementById('c-id').value;
+  const obj={razao,cnpj:document.getElementById('c-cnpj').value.trim(),contato:document.getElementById('c-contato').value.trim(),aliases:document.getElementById('c-aliases').value.split(',').map(a=>a.trim()).filter(Boolean),obs:document.getElementById('c-obs')?.value?.trim()||''};
+  const btn=document.getElementById('btn-save-cli');btn.innerHTML='<span class="spinner"></span>';btn.disabled=true;
+  try{
+    if(id){await supaPatch('clientes',id,obj);const idx=clientes.findIndex(c=>c.id===id);if(idx>=0)clientes[idx]={...clientes[idx],...obj};toast('Cliente atualizado','ok');}
+    else{const res=await supaPost('clientes',obj);const c=Array.isArray(res)?res[0]:res;clientes.push(c);toast('Cliente cadastrado','ok');}
+    document.getElementById('badge-clientes').textContent=clientes.length;
+    closeModal('modal-cliente');renderClientes();rodarConciliacao();
+    ['c-id','c-razao','c-cnpj','c-contato','c-aliases'].forEach(i=>document.getElementById(i).value='');
+  }catch(e){toast('Erro: '+e.message,'err');}
+  btn.innerHTML='Salvar';btn.disabled=false;
+}
+function editCliente(id){
+  const c=clientes.find(x=>x.id===id);if(!c)return;
+  document.getElementById('c-id').value=c.id;document.getElementById('c-razao').value=c.razao;document.getElementById('c-cnpj').value=c.cnpj||'';document.getElementById('c-contato').value=c.contato||'';document.getElementById('c-aliases').value=(c.aliases||[]).join(', ');document.getElementById('modal-cli-title').textContent='Editar cliente';openModal('modal-cliente');
+}
+async function deleteCliente(id){if(!confirm('Remover este cliente?'))return;try{await supaDelete('clientes','id=eq.'+id);clientes=clientes.filter(c=>c.id!==id);document.getElementById('badge-clientes').textContent=clientes.length;renderClientes();rodarConciliacao();toast('Cliente removido');}catch(e){toast('Erro: '+e.message,'err');}}
+
+// ══════════════════════════════════════════════════
+// MÊS
+// ══════════════════════════════════════════════════
+function renderMes(){
+  // Competências já importadas — badges clicáveis
+  const comps = [...new Set(cobrancas.map(c=>c.competencia))].sort().reverse();
+  const compEl = document.getElementById('mes-competencias');
+  if(comps.length){
+    compEl.innerHTML = comps.map(comp=>{
+      const cobsComp = cobrancas.filter(c=>c.competencia===comp);
+      const pagas    = cobsComp.filter(c=>c.status==='pago').length;
+      const total    = cobsComp.length;
+      const totalFat = cobsComp.reduce((s,c)=>s+(parseFloat(c.valor_faturar)||0),0);
+      const isAtiva  = comp===compAtiva;
+      return`<div onclick="selecionarComp('${comp}')" style="cursor:pointer;background:${isAtiva?'var(--green)':'var(--surface)'};color:${isAtiva?'#fff':'var(--ink)'};border:1px solid ${isAtiva?'var(--green)':'var(--border2)'};border-radius:8px;padding:8px 14px;transition:all .15s">
+        <div style="font-size:12px;font-weight:600">${comp.split('-').reverse().join('/')}</div>
+        <div style="font-size:10px;opacity:${isAtiva?'.8':'.6'};margin-top:2px">${pagas}/${total} pagos · ${brl(totalFat)}</div>
+      </div>`;
+    }).join('');
+  } else {
+    compEl.innerHTML='<div style="font-size:12px;color:var(--ink3)">Nenhuma planilha importada ainda</div>';
+  }
+
+  // Stats da competência ativa
+  const cobsAtivas = cobrancas.filter(c=>c.competencia===compAtiva);
+  document.getElementById('mes-comp-atual').textContent = compAtiva ? compAtiva.split('-').reverse().join('/') : '—';
+  const totalFat = cobsAtivas.reduce((s,c)=>s+(parseFloat(c.valor_faturar)||0),0);
+  const comExc   = cobsAtivas.filter(c=>parseInt(c.excedentes||0)>0).length;
+  const pagas    = cobsAtivas.filter(c=>c.status==='pago').length;
+  document.getElementById('mes-totais').innerHTML = cobsAtivas.length
+    ? `<div class="total-item">Total a faturar: <span class="total-val">${brl(totalFat)}</span></div>
+       <div class="total-item">Clientes: <span class="total-val">${cobsAtivas.length}</span></div>
+       <div class="total-item">Com excedentes: <span class="total-val">${comExc}</span></div>
+       <div class="total-item">Pagos: <span class="total-val">${pagas}</span></div>`
+    : '<div style="font-size:12px;color:var(--ink3)">Nenhuma cobrança nesta competência</div>';
+}
+
+function selecionarComp(comp){
+  compAtiva=comp;
+  document.getElementById('comp-ativa').value=comp;
+  renderMes();
+  rodarConciliacao();
+  navTo('hoje');
+}
+
+async function importarPlanilha(input){
+  const file=input.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const wb=XLSX.read(e.target.result,{type:'array'});
+      const ws=wb.Sheets[wb.SheetNames[0]];
+      const raw=XLSX.utils.sheet_to_json(ws,{defval:''});
+      if(!raw.length)throw new Error('Planilha vazia');
+      const cols=Object.keys(raw[0]);
+      const findCol=patterns=>cols.find(c=>patterns.some(p=>norm(c).includes(p)))||'';
+      const colRazao=findCol(['razao','nome','cliente','empresa'])||cols[1];
+      const colCNPJ=findCol(['cnpj','cpf']);
+      const colMens=findCol(['mensalidade','mensal']);
+      const colInc=findCol(['inclusos','incluso']);
+      const colEmit=findCol(['emitidos','emitido']);
+      const colExc=findCol(['excedentes','excedente']);
+      const colVExc=findCol(['valor excedente','vlr exc']);
+      const colFat=findCol(['faturar','faturamento']);
+      function cn(v){if(!v&&v!==0)return 0;if(typeof v==='number')return v;return parseFloat(String(v).replace(/R\$\s*/,'').replace(/\./g,'').replace(',','.'))||0;}
+      planilhaParsed=raw.filter(r=>String(r[colRazao]||'').trim()).map(r=>({
+        razao:String(r[colRazao]||'').trim(),cnpj:String(r[colCNPJ]||'').trim(),cnpj_digits:cleanDigits(String(r[colCNPJ]||'')),
+        mensalidade:cn(r[colMens]),ciots_inclusos:Math.round(cn(r[colInc])),ciots_emitidos:Math.round(cn(r[colEmit])),
+        excedentes:Math.round(cn(r[colExc])),valor_excedente:cn(r[colVExc]),valor_faturar:cn(r[colFat])
+      }));
+      const totalFat=planilhaParsed.reduce((s,d)=>s+(d.valor_faturar||0),0);
+      document.getElementById('planilha-preview-txt').textContent=`${planilhaParsed.length} clientes carregados · Total a faturar: ${brl(totalFat)}`;
+      document.getElementById('planilha-preview').style.display='block';
+    }catch(err){toast('Erro ao ler planilha: '+err.message,'err');}
+  };reader.readAsArrayBuffer(file);
+}
+
+async function salvarPlanilha(){
+  const comp=document.getElementById('mes-comp-input').value;
+  if(!comp){toast('Selecione a competência','err');return}
+  if(!planilhaParsed.length){toast('Carregue a planilha primeiro','err');return}
+  if(!confirm(`Importar ${planilhaParsed.length} cobranças para ${comp}?\nClientes novos serão criados automaticamente.`))return;
+
+  document.getElementById('planilha-prog').style.display='block';
+  const btn=document.getElementById('btn-salvar-planilha');btn.disabled=true;
+  let ok=0, erros=0, novos=0;
+
+  for(let i=0;i<planilhaParsed.length;i++){
+    const d=planilhaParsed[i];
+
+    // Encontra ou cria o cliente
+    let cli = clientes.find(c=>cleanDigits(c.cnpj||'')===d.cnpj_digits&&d.cnpj_digits.length>=11);
+    if(!cli) cli=clientes.find(c=>norm(c.razao)===norm(d.razao));
+    if(!cli) cli=clientes.find(c=>norm(c.razao).slice(0,12)===norm(d.razao).slice(0,12));
+
+    // Cria cliente novo se não existir
+    if(!cli){
+      try{
+        const res=await supaPost('clientes',{razao:d.razao,cnpj:d.cnpj,aliases:[]});
+        cli=Array.isArray(res)?res[0]:res;
+        clientes.push(cli);
+        novos++;
+      }catch(e){erros++;continue;}
+    }
+
+    // Upsert na tabela cobrancas (cliente+competencia é unique)
+    try{
+      const cobData={
+        cliente_id:    cli.id,
+        competencia:   comp,
+        mensalidade:   d.mensalidade,
+        ciots_inclusos:d.ciots_inclusos,
+        ciots_emitidos:d.ciots_emitidos,
+        excedentes:    d.excedentes,
+        valor_excedente:d.valor_excedente,
+        valor_faturar: d.valor_faturar,
+        status:        'pendente'
+      };
+      await supaUpsert('cobrancas', cobData, 'cliente_id,competencia');
+      ok++;
+    }catch(e){erros++;}
+
+    const pct=Math.round(((i+1)/planilhaParsed.length)*100);
+    document.getElementById('planilha-prog-fill').style.width=pct+'%';
+    document.getElementById('planilha-prog-txt').textContent=`Salvando... ${i+1}/${planilhaParsed.length}`;
+    if(i%20===19)await new Promise(r=>setTimeout(r,100));
+  }
+
+  // Recarrega cobrancas e define competência ativa
+  cobrancas = await supaGet('cobrancas','select=id,cliente_id,competencia,mensalidade,ciots_inclusos,ciots_emitidos,excedentes,valor_excedente,valor_faturar,status,txn_fitid,valor_pago').catch(()=>[]);
+  compAtiva = comp;
+  document.getElementById('comp-ativa').value=comp;
+  document.getElementById('badge-clientes').textContent=clientes.length;
+
+  document.getElementById('planilha-prog-txt').textContent=`✓ ${ok} cobranças salvas · ${novos} clientes novos · ${erros} erros`;
+  btn.disabled=false;
+  renderMes();
+  rodarConciliacao();
+  toast(`Planilha ${comp} importada!${novos?` (${novos} clientes novos)`:''}`, 'ok');
+}
+
+// ══════════════════════════════════════════════════
+// CONCILIAR DO EXTRATO
+// ══════════════════════════════════════════════════
+let mceAtual = null; // lançamento sendo conciliado
+
+function abrirConciliarExtrato(fitid, valor, memo, cod, data) {
+  mceAtual = { fitid, valor: parseFloat(valor), memo, cod, data };
+
+  // Info do lançamento
+  const tipo = BB_TIPOS[cod] || { nome: cod, icon: '•' };
+  let nomeExib = memo.replace(/^\d{2}\/\d{2}\s+\d{2}:\d{2}\s+/,'').replace(/\b\d{14}\b/g,'').replace(/^\d{3}\s+\d{4}\s+/,'').replace(/\s+/g,' ').trim() || memo;
+  document.getElementById('mce-lancamento').innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px">
+      <div>
+        <div style="font-size:11px;color:var(--green);font-weight:600;margin-bottom:4px">${tipo.icon} ${tipo.nome} · ${data}</div>
+        <div style="font-size:14px;font-weight:600;color:var(--ink)">${nomeExib}</div>
+        <div style="font-size:11px;color:var(--ink3);font-family:var(--mono);margin-top:2px">${fitid.split('-').slice(0,3).join(' · ')}</div>
+      </div>
+      <div style="font-size:20px;font-weight:600;color:var(--green);font-family:var(--mono);white-space:nowrap">${brl(parseFloat(valor))}</div>
+    </div>`;
+
+  document.getElementById('mce-search').value = '';
+  renderConciliarExtrato();
+  openModal('modal-conciliar-extrato');
+}
+
+function renderConciliarExtrato() {
+  if (!mceAtual) return;
+  const q = norm(document.getElementById('mce-search').value);
+  const valor = mceAtual.valor;
+
+  // Mapa rápido: cliente_id → cobrança da competência ativa
+  const cobMap = {};
+  cobrancas.filter(c => c.competencia === compAtiva).forEach(c => cobMap[c.cliente_id] = c);
+
+  let lista = clientes
+    .filter(c => !q || norm(c.razao+' '+(c.cnpj||'')+' '+(c.aliases||[]).join(' ')).includes(q))
+    .map(c => {
+      // Pega valor da cobrança do mês ativo, não do cadastro
+      const cob    = cobMap[c.id];
+      const fatRef = cob ? parseFloat(cob.valor_faturar||0) : 0;
+      const mens   = cob ? parseFloat(cob.mensalidade||0)   : 0;
+      const exc    = cob ? parseInt(cob.excedentes||0)       : 0;
+      const diff   = fatRef > 0 ? Math.abs(valor - fatRef) : 999999;
+      const diffPct= fatRef > 0 ? Math.round(diff/fatRef*100) : null;
+      const result = concResult.find(r => r.cli.id === c.id);
+      return { c, cob, fatRef, mens, exc, diff, diffPct, status: result?.status || 'pendente' };
+    })
+    .sort((a, b) => a.diff - b.diff);
+
+  document.getElementById('mce-count').textContent = lista.length + ' clientes';
+
+  if (!lista.length) {
+    document.getElementById('mce-lista').innerHTML = '<div style="text-align:center;padding:24px;color:var(--ink3)">Nenhum cliente encontrado</div>';
+    return;
+  }
+
+  document.getElementById('mce-lista').innerHTML = lista.map(({c, cob, fatRef, mens, exc, diffPct, status}) => {
+    const statusBadge = status === 'pago'
+      ? '<span style="font-size:10px;background:var(--green-pill);color:var(--green);padding:1px 7px;border-radius:10px;margin-left:6px">✓ pago</span>'
+      : status === 'divergente'
+      ? '<span style="font-size:10px;background:var(--amber-pill);color:var(--amber);padding:1px 7px;border-radius:10px;margin-left:6px">⚠ divergente</span>'
+      : '';
+    const diffBadge = diffPct !== null
+      ? `<span style="font-size:10px;padding:1px 7px;border-radius:10px;font-family:var(--mono);background:${diffPct===0?'var(--green-pill);color:var(--green)':diffPct<=10?'var(--amber-pill);color:var(--amber)':'var(--surface2);color:var(--ink3)'}">${diffPct===0?'exato':diffPct+'% dif.'}</span>`
+      : '';
+    // Detalhe do valor: mensalidade + excedente separados
+    const valorDetalhe = fatRef > 0
+      ? `<div style="font-family:var(--mono);font-size:13px;font-weight:500">${brl(fatRef)}</div>
+         ${exc > 0
+           ? `<div style="font-size:10px;color:var(--amber)">${brl(mens)} + ${exc} exc.</div>`
+           : mens > 0 && mens !== fatRef
+           ? `<div style="font-size:10px;color:var(--ink3)">mens. ${brl(mens)}</div>`
+           : ''}`
+      : '<div style="font-size:11px;color:var(--ink3)">sem cobrança em '+compAtiva+'</div>';
+
+    return `<div onclick="executarConciliacaoExtrato('${c.id}')"
+      style="display:flex;align-items:center;gap:12px;padding:10px 14px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .1s"
+      onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''">
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+          ${c.razao}${statusBadge}
+        </div>
+        <div style="font-size:11px;color:var(--ink3);font-family:var(--mono);margin-top:1px">${c.cnpj||'sem CNPJ'}</div>
+        ${(c.aliases||[]).length ? `<div style="margin-top:3px">${c.aliases.slice(0,3).map(a=>`<span class="alias-tag">${a}</span>`).join('')}</div>` : ''}
+      </div>
+      <div style="text-align:right;flex-shrink:0">
+        ${valorDetalhe}
+        <div style="margin-top:2px">${diffBadge}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function executarConciliacaoExtrato(clienteId) {
+  if (!mceAtual) return;
+  const cli = clientes.find(c => c.id === clienteId);
+  if (!cli) return;
+
+  // Busca valor na cobrança ativa (não mais no cadastro do cliente)
+  const cob = cobrancas.find(c=>c.cliente_id===clienteId&&c.competencia===compAtiva);
+  const fatRef = cob ? parseFloat(cob.valor_faturar||0) : 0;
+
+  // Modo cliente-fixo: mceAtual.clienteId definido → o "valor" é do cliente,
+  // e o usuário está selecionando o lançamento do extrato (fluxo invertido).
+  // Neste caso, mceAtual.fitid NÃO existe — precisamos abrir a lista de lançamentos.
+  if (mceAtual.clienteId) {
+    // Abre o modal de vincular manualmente (centrado no cliente)
+    closeModal('modal-conciliar-extrato');
+    abrirVincular(clienteId);
+    return;
+  }
+
+  const diffPct = fatRef > 0 ? Math.round(Math.abs(mceAtual.valor - fatRef) / fatRef * 100) : null;
+  const aviso = diffPct !== null && diffPct > 5 ? `\n\nDiferença de ${diffPct}% em relação ao valor esperado (${brl(fatRef)}).` : '';
+
+  if (!confirm(`Vincular "${mceAtual.memo.slice(0,50)}" (${brl(mceAtual.valor)}) ao cliente "${cli.razao}"?${aviso}`)) return;
+
+  try {
+    const vendaId = await garantirVenda(clienteId, fatRef || mceAtual.valor, cli);
+    await supaUpsert('vinculos', { venda_id: vendaId, txn_fitid: mceAtual.fitid }, 'venda_id');
+
+    const apelido = extrairApelido(mceAtual.memo);
+    if (apelido && !(cli.aliases||[]).some(a => norm(a) === norm(apelido))) {
+      const novosAliases = [...(cli.aliases||[]), apelido];
+      await supaPatch('clientes', clienteId, { aliases: novosAliases });
+      cli.aliases = novosAliases;
+      toast(`✓ Conciliado! Apelido "${apelido}" salvo.`, 'ok');
+    } else {
+      toast('✓ Conciliado!', 'ok');
+    }
+
+    vinculos = await supaGet('vinculos', 'select=venda_id,txn_fitid');
+    closeModal('modal-conciliar-extrato');
+    rodarConciliacao();
+    renderExtratoDash();
+    renderClientes();
+    mceAtual = null;
+  } catch(e) {
+    toast('Erro: ' + e.message, 'err');
+  }
+}
+
+// Mapa de códigos BB → nome amigável + categoria
+const BB_TIPOS = {
+  '109': { nome:'Pagamento de Boleto',     cat:'pagamentos',   icon:'📄', cred:false },
+  '124': { nome:'Débito Serviço Cobrança', cat:'tarifas',      icon:'🏦', cred:false },
+  '144': { nome:'Pix Enviado',             cat:'pix',          icon:'↗️', cred:false },
+  '170': { nome:'Tarifa BB Pay',           cat:'tarifas',      icon:'💳', cred:false },
+  '250': { nome:'Folha de Pagamento',      cat:'folha',        icon:'👥', cred:false },
+  '258': { nome:'Tarifa Pix Enviado',      cat:'tarifas',      icon:'🏦', cred:false },
+  '351': { nome:'BB Rende Fácil (saída)',  cat:'investimento', icon:'💰', cred:false },
+  '363': { nome:'Pagto Conta Telefone',    cat:'pagamentos',   icon:'📱', cred:false },
+  '435': { nome:'Tarifa Pacote Serviços',  cat:'tarifas',      icon:'🏦', cred:false },
+  '470': { nome:'Transferência Agendada',  cat:'transferencia',icon:'⏱', cred:false },
+  '624': { nome:'Cobrança (recebida)',     cat:'cobranca',     icon:'📋', cred:true  },
+  '798': { nome:'BB Rende Fácil (entrada)',cat:'investimento', icon:'💰', cred:true  },
+  '821': { nome:'Pix Recebido',            cat:'pix',          icon:'↙️', cred:true  },
+  '900': { nome:'Recebimento BB Pay',      cat:'bbpay',        icon:'💳', cred:true  },
+  '976': { nome:'TED Crédito em Conta',    cat:'ted',          icon:'🏛', cred:true  },
+};
+
+let extratoDash = [];       // transações parseadas do TXT completo
+let filtExtTipo = null;     // código do tipo selecionado (null = todos)
+let filtExtDir = 'todos';   // 'todos' | 'credito' | 'debito'
+let pagExtPage = 0;
+const PER_EXT = 50;
+
+// Parser do extrato TXT completo do BB (formato conta corrente)
+function parseExtratoBBCompleto(txt) {
+  const txns = [];
+  const lines = txt.split('\n');
+  let i = 0;
+  while (i < lines.length) {
+    const l = lines[i];
+    // Linha de transação: começa com data dd/mm/yyyy indentada
+    const dateM = l.match(/^\s{3,4}(\d{2}\/\d{2}\/\d{4})/);
+    if (dateM) {
+      // Extrai: código histórico (3 dígitos), descrição, documento, valor, C/D
+      const txM = l.match(/\s+(\d{3})\s+(.+?)\s{2,}([\d\.]+)\s+([\d\.,]+)\s+([CD])/);
+      if (txM) {
+        const cod   = txM[1];
+        const desc  = txM[2].trim();
+        const doc   = txM[3];
+        const valor = parseFloat(txM[4].replace(/\./g,'').replace(',','.'));
+        const dir   = txM[5]; // C ou D
+        // Linha de detalhe (nome, CNPJ, info extra)
+        let detalhe = '';
+        if (i+1 < lines.length) {
+          const prox = lines[i+1];
+          if (prox && !prox.match(/^\s{3,4}\d{2}\/\d{2}\/\d{4}/) && !prox.match(/^[-=\s]*$/) && prox.trim()) {
+            detalhe = prox.trim();
+            i++;
+          }
+        }
+        const tipo = BB_TIPOS[cod] || { nome: desc, cat: 'outros', icon: '•', cred: dir==='C' };
+        txns.push({
+          data: dateM[1],
+          cod,
+          desc,
+          detalhe,
+          doc,
+          valor,
+          dir,
+          credito: dir === 'C',
+          tipoNome: tipo.nome,
+          tipoIcon: tipo.icon,
+          tipoInfo: tipo,
+        });
+      }
+    }
+    i++;
+  }
+  return txns;
+}
+
+async function importarExtratoDash(input) {
+  const file = input.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const txt = e.target.result;
+      extratoDash = parseExtratoBBCompleto(txt);
+      if (!extratoDash.length) throw new Error('Nenhuma transação encontrada');
+      filtExtTipo = null; filtExtDir = 'todos'; pagExtPage = 0;
+
+      // Preenche datas automaticamente com o período do extrato
+      const datasISO = extratoDash.map(t=>dataParaISO(t.data)).filter(Boolean).sort();
+      if (datasISO.length) {
+        document.getElementById('ext-data-de').value  = datasISO[0];
+        document.getElementById('ext-data-ate').value = datasISO[datasISO.length-1];
+        document.getElementById('btn-limpar-data').style.display = '';
+      }
+
+      renderExtratoDash();
+      toast(extratoDash.length + ' transações carregadas — conciliando...', 'ok');
+
+      // Atualiza status da tela Hoje
+      atualizarStatusExtrato();
+      // Importa créditos para a conciliação com tratamento por tipo
+      // 821=Pix (tem CNPJ+nome), 900=BB Pay (tem nome), 976=TED (tem CNPJ+nome), 624=Cobrança (sem info)
+      // 798=BB Rende Fácil EXCLUÍDO — é resgate de investimento, não pagamento de cliente
+      const CODS_CONC = new Set(['821','900','976','624']);
+      const creditosParaConc = extratoDash
+        .filter(t => t.credito && CODS_CONC.has(t.cod))
+        .map((t, idx) => {
+          const detalheStr = t.detalhe || '';
+          const cnpjFmt = detalheStr.match(/\b(\d{2})\.(\d{3})\.(\d{3})\/(\d{4})-(\d{2})\b/);
+          const cnpj14  = detalheStr.match(/\b(\d{14})\b/);
+          const cnpj = cnpjFmt
+            ? cnpjFmt[1]+cnpjFmt[2]+cnpjFmt[3]+cnpjFmt[4]+cnpjFmt[5]
+            : cnpj14 ? cnpj14[1] : '';
+          let memo = detalheStr || t.desc;
+          memo = memo.replace(/^\d{2}\/\d{2}\s+\d{2}:\d{2}\s+/,'');
+          memo = memo.replace(/\b\d{14}\b/g,'').trim();
+          memo = memo.replace(/^\d{3}\s+\d{4}\s+/,'');
+          memo = memo.replace(/\s+/g,' ').trim();
+          if (!memo) memo = t.desc;
+          const valCents = Math.round(t.valor * 100);
+          const fitid = `ext-${t.cod}-${t.doc}-${t.data.replace(/\//g,'')}-${valCents}-${idx}`;
+          // Guarda fitid no objeto extratoDash para usar no botão Conciliar
+          t.fitid_conc = fitid;
+          return { fitid, memo, credito:true, valor:t.valor, data:t.data.split('/').reverse().join('-'), cnpj_pagador:cnpj };
+        })
+        .filter((t, i, arr) => arr.findIndex(x => x.fitid === t.fitid) === i);
+
+      if (creditosParaConc.length) {
+        supaUpsert('extrato_bb', creditosParaConc, 'fitid').then(()=>{
+          supaGet('extrato_bb','select=fitid,memo,credito,valor,data,cnpj_pagador').then(d=>{
+            extrato = d;
+            rodarConciliacao();
+            atualizarStatusExtrato();
+          });
+        }).catch(e => { toast('Aviso ao salvar extrato: '+e.message,'err'); });
+      }
+
+      // Informa o que foi incluído
+      const nPix=extratoDash.filter(t=>t.cod==='821'&&t.credito).length;
+      const nPay=extratoDash.filter(t=>t.cod==='900'&&t.credito).length;
+      const nTed=extratoDash.filter(t=>t.cod==='976'&&t.credito).length;
+      const nCob=extratoDash.filter(t=>t.cod==='624'&&t.credito).length;
+      toast(`${creditosParaConc.length} créditos para conciliação — Pix:${nPix} BBPay:${nPay} TED:${nTed} Cobr:${nCob}`,'ok');
+    } catch(err) { toast('Erro: '+err.message, 'err'); }
+  };
+  reader.readAsText(file, 'latin-1');
+}
+
+function setFiltExt(dir, btn) {
+  filtExtDir = dir; filtExtTipo = null; pagExtPage = 0;
+  document.querySelectorAll('#page-extrato .filter-pill').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  // Remove destaque dos tipo-cards
+  document.querySelectorAll('.tipo-card').forEach(c=>c.classList.remove('active','active-deb'));
+  renderExtratoDash();
+}
+
+function setFiltTipo(cod) {
+  if (filtExtTipo === cod) { filtExtTipo = null; }
+  else { filtExtTipo = cod; filtExtDir = 'todos'; }
+  pagExtPage = 0;
+  // Atualiza filtro geral
+  document.querySelectorAll('#page-extrato .filter-pill').forEach(b=>b.classList.remove('on'));
+  document.getElementById('fpill-todos').classList.add('on');
+  renderExtratoDash();
+}
+
+function filtrarDataExt(){ pagExtPage=0; renderExtratoDash(); const de=document.getElementById('ext-data-de').value; const ate=document.getElementById('ext-data-ate').value; document.getElementById('btn-limpar-data').style.display=(de||ate)?'':'none'; }
+function limparDataExt(){ document.getElementById('ext-data-de').value=''; document.getElementById('ext-data-ate').value=''; document.getElementById('btn-limpar-data').style.display='none'; pagExtPage=0; renderExtratoDash(); }
+function dataParaISO(d){ if(!d)return''; if(d.includes('-'))return d; const[dia,mes,ano]=d.split('/'); return`${ano}-${mes}-${dia}`; }
+
+function getFiltExt() {
+  const q = norm(document.getElementById('search-ext')?.value||'');
+  const de  = document.getElementById('ext-data-de')?.value||'';
+  const ate = document.getElementById('ext-data-ate')?.value||'';
+  return extratoDash.filter(t => {
+    if (filtExtTipo && t.cod !== filtExtTipo) return false;
+    if (filtExtDir === 'credito' && !t.credito) return false;
+    if (filtExtDir === 'debito' && t.credito) return false;
+    if (q && !norm(t.desc+' '+t.detalhe+' '+t.doc).includes(q)) return false;
+    // Filtro por data — converte dd/mm/yyyy → yyyy-mm-dd para comparação
+    if (de || ate) {
+      const iso = dataParaISO(t.data);
+      if (de && iso < de) return false;
+      if (ate && iso > ate) return false;
+    }
+    return true;
+  });
+}
+
+function pagExt(d) {
+  const rows = getFiltExt();
+  const max = Math.max(0, Math.ceil(rows.length/PER_EXT)-1);
+  pagExtPage = Math.max(0, Math.min(max, pagExtPage+d));
+  renderExtratoDash();
+}
+
+function renderExtratoDash() {
+  if (!extratoDash.length) {
+    document.getElementById('ext-list-title').textContent = 'Nenhum extrato importado';
+    document.getElementById('tbody-ext').innerHTML = '<tr><td colspan="5" style="text-align:center;padding:32px;color:var(--ink3)">Importe o extrato do BB para visualizar</td></tr>';
+    return;
+  }
+
+  // ── Totais gerais ──
+  const totalCred = extratoDash.filter(t=>t.credito).reduce((s,t)=>s+t.valor,0);
+  const totalDeb  = extratoDash.filter(t=>!t.credito).reduce((s,t)=>s+t.valor,0);
+  const saldo = totalCred - totalDeb;
+  const datas = extratoDash.map(t=>t.data).sort();
+  document.getElementById('ext-total-cred').textContent = brl(totalCred);
+  document.getElementById('ext-count-cred').textContent = extratoDash.filter(t=>t.credito).length + ' transações';
+  document.getElementById('ext-total-deb').textContent  = brl(totalDeb);
+  document.getElementById('ext-count-deb').textContent  = extratoDash.filter(t=>!t.credito).length + ' transações';
+  document.getElementById('ext-saldo').textContent = brl(Math.abs(saldo));
+  document.getElementById('ext-saldo').style.color = saldo >= 0 ? 'var(--green)' : 'var(--red)';
+  document.getElementById('ext-periodo-sub').textContent = datas[0] + ' a ' + datas[datas.length-1];
+
+  // ── Cards por tipo ──
+  const porTipo = {};
+  extratoDash.forEach(t => {
+    if (!porTipo[t.cod]) porTipo[t.cod] = { cod:t.cod, tipoNome:t.tipoNome, tipoIcon:t.tipoIcon, credito:t.credito, total:0, count:0 };
+    porTipo[t.cod].total += t.valor;
+    porTipo[t.cod].count++;
+  });
+  const maxVal = Math.max(...Object.values(porTipo).map(v=>v.total));
+
+  document.getElementById('ext-tipo-cards').innerHTML = Object.values(porTipo)
+    .sort((a,b) => b.total - a.total)
+    .map(tp => {
+      const isActive = filtExtTipo === tp.cod;
+      const cls = isActive ? (tp.credito?'active':'active-deb') : '';
+      const barW = Math.round((tp.total/maxVal)*100);
+      return `<div class="tipo-card ${cls}" onclick="setFiltTipo('${tp.cod}')">
+        <div class="tc-cod">COD ${tp.cod}</div>
+        <div class="tc-nome">${tp.tipoIcon} ${tp.tipoNome}</div>
+        <div class="tc-val ${tp.credito?'cred':'deb'}">${brl(tp.total)}</div>
+        <div class="tc-cnt">${tp.count} lançamento${tp.count>1?'s':''}</div>
+        <div class="tc-bar ${tp.credito?'cred':'deb'}" style="width:${barW}%"></div>
+      </div>`;
+    }).join('');
+
+  // ── Lista filtrada ──
+  const rows = getFiltExt();
+  const max = Math.max(0, Math.ceil(rows.length/PER_EXT)-1);
+  pagExtPage = Math.min(pagExtPage, max);
+  const slice = rows.slice(pagExtPage*PER_EXT, (pagExtPage+1)*PER_EXT);
+
+  const filtName = filtExtTipo ? (BB_TIPOS[filtExtTipo]?.nome||'COD '+filtExtTipo) : filtExtDir==='credito'?'Créditos':filtExtDir==='debito'?'Débitos':'Todas as transações';
+  document.getElementById('ext-list-title').textContent = filtName + ' — ' + rows.length + ' lançamentos';
+
+  const totalFilt = rows.reduce((s,t)=>s+t.valor,0);
+
+  document.getElementById('tbody-ext').innerHTML = slice.length ? slice.map((t, sliceIdx) => {
+    // Usa fitid já calculado na importação (t.fitid_conc) ou reconstrói
+    const valCents = Math.round(t.valor * 100);
+    const fitid = t.fitid_conc || `ext-${t.cod}-${t.doc}-${t.data.replace(/\//g,'')}-${valCents}-0`;
+    return `<tr>
+      <td style="font-family:var(--mono);font-size:11px;color:var(--ink2);white-space:nowrap">${t.data}</td>
+      <td><span class="badge-tipo ${t.credito?'cred':'deb'}">${t.tipoIcon} ${t.tipoNome}</span></td>
+      <td class="desc">
+        <div style="font-size:12px;font-weight:500">${t.desc}</div>
+        ${t.detalhe?`<div style="font-size:11px;color:var(--ink3)">${t.detalhe}</div>`:''}
+      </td>
+      <td style="font-family:var(--mono);font-size:11px;color:var(--ink3)">${t.doc}</td>
+      <td class="right" style="font-weight:600;color:${t.credito?'var(--green)':'var(--red)'}">${t.credito?'+':'−'} ${brl(t.valor)}</td>
+      <td style="text-align:center">
+        ${t.credito
+          ? `<button class="btn xs" style="white-space:nowrap;background:var(--green-bg);color:var(--green);border-color:var(--green-pill)"
+              onclick="abrirConciliarExtrato('${fitid}',${t.valor},'${(t.detalhe||t.desc).replace(/'/g,"\\'")}','${t.cod}','${t.data}')"
+              title="Vincular este crédito a um cliente">⟳ Conciliar</button>`
+          : '<span style="color:var(--ink3);font-size:11px">—</span>'}
+      </td>
+    </tr>`;
+  }).join('') : '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--ink3)">Nenhum resultado</td></tr>';
+
+  document.getElementById('pag-ext-info').textContent = `${slice.length} de ${rows.length} · Total: ${brl(totalFilt)}`;
+  document.getElementById('pag-ext-prev').disabled = pagExtPage===0;
+  document.getElementById('pag-ext-next').disabled = pagExtPage>=max;
+}
+function atualizarStatusExtrato(){
+  const total = extrato.filter(t=>t.credito).length;
+  const datas = extrato.map(t=>t.data||'').filter(Boolean).sort();
+  const txtEl = document.getElementById('hoje-extrato-txt');
+  const subEl = document.getElementById('hoje-extrato-sub');
+  const bannerDB = document.getElementById('banner-modo-banco');
+  if(!txtEl) return;
+  if(!total){
+    txtEl.textContent = 'Nenhum extrato importado';
+    subEl.textContent = 'Vá até a aba Extrato para importar o arquivo do BB';
+    // Mostra banner somente-banco se há conciliações gravadas
+    const temGravados = concResult.some(r=>r.fromDB&&(r.status==='pago'||r.status==='divergente'));
+    if(bannerDB) bannerDB.style.display = temGravados ? 'block' : 'none';
+  } else {
+    const de  = datas[0]  ? datas[0].split('-').reverse().join('/') : '';
+    const ate = datas[datas.length-1] ? datas[datas.length-1].split('-').reverse().join('/') : '';
+    txtEl.textContent  = `${extrato.length} lançamentos carregados — ${total} créditos`;
+    subEl.textContent  = `Período: ${de} a ${ate}`;
+    txtEl.style.color  = 'var(--green)';
+    if(bannerDB) bannerDB.style.display = 'none';
+  }
+}
+function parseOFX(text){
+  const txns=[];const re=/<STMTTRN>([\s\S]*?)<\/STMTTRN>/gi;let m;
+  while((m=re.exec(text))!==null){const b=m[1];const get=tag=>{const r=new RegExp('<'+tag+'>([^<\n\r]+)','i');const x=r.exec(b);return x?x[1].trim():''};const id=get('FITID');if(!id)continue;const valor=parseFloat(get('TRNAMT').replace(',','.'));let data=get('DTPOSTED').slice(0,8);data=data.slice(0,4)+'-'+data.slice(4,6)+'-'+data.slice(6,8);const memo=(get('MEMO')||get('NAME')||'').trim();txns.push({fitid:id,data,valor,memo,credito:valor>0,cnpj_pagador:''});}
+  if(!txns.length){const lines=text.split('\n');let cur=null;for(const line of lines){const l=line.trim();if(l==='<STMTTRN>'){cur={};continue}if(l==='</STMTTRN>'&&cur){if(cur.fitid)txns.push({fitid:cur.fitid,data:cur.data||'',valor:parseFloat(cur.valor)||0,memo:cur.memo||cur.nome||'',credito:(parseFloat(cur.valor)||0)>0,cnpj_pagador:''});cur=null;continue}if(!cur)continue;if(l.startsWith('<TRNTYPE>'));else if(l.startsWith('<DTPOSTED>')){let d=l.slice(10).slice(0,8);cur.data=d.slice(0,4)+'-'+d.slice(4,6)+'-'+d.slice(6,8)}else if(l.startsWith('<TRNAMT>'))cur.valor=l.slice(8).replace(',','.');else if(l.startsWith('<FITID>'))cur.fitid=l.slice(7);else if(l.startsWith('<MEMO>'))cur.memo=l.slice(6);else if(l.startsWith('<NAME>'))cur.nome=l.slice(6);}}
+  return txns;
+}
+
+// parseBBTxt e importarExtrato removidos — use sempre o extrato completo via aba Extrato
+
+// ══════════════════════════════════════════════════
+// EXPORTAR RESULTADO COMPLETO
+// ══════════════════════════════════════════════════
+function exportarResultado(){
+  if(!concResult.length){ toast('Rode a conciliação primeiro','err'); return; }
+  const compLabel = compAtiva ? compAtiva.split('-').reverse().join('/') : '';
+
+  // Todos os clientes que têm cobrança na competência ativa OU aparecem no resultado
+  const cobsAtivas = cobrancas.filter(c=>c.competencia===compAtiva);
+  const clientesComCob = new Set(cobsAtivas.map(c=>c.cliente_id));
+
+  const rowsCompleto = concResult
+    .filter(r => clientesComCob.has(r.cli.id) || r.fatRef > 0 || r.pago > 0)
+    .sort((a,b) => {
+      const ord = { divergente:0, pendente:1, pago:2 };
+      return (ord[a.status]??3) - (ord[b.status]??3);
+    })
+    .map(r => {
+      const inadimpl = calcInadimplencia(r.cli.id);
+      const cob = cobsAtivas.find(c=>c.cliente_id===r.cli.id);
+      return {
+        'Status':         r.status === 'pago' ? 'Pago' : r.status === 'divergente' ? 'Divergente' : 'Pendente',
+        'Razão Social':   r.cli.razao,
+        'CNPJ':           r.cli.cnpj || '',
+        'Competência':    compLabel,
+        'Mensalidade':    cob ? parseFloat(cob.mensalidade||0) : 0,
+        'Excedentes':     cob ? parseInt(cob.excedentes||0)    : 0,
+        'Valor Faturar':  cob ? parseFloat(cob.valor_faturar||0) : r.fatRef || 0,
+        'Valor Pago':     r.pago   || 0,
+        'Diferença':      r.pago && r.fatRef ? +(r.pago - r.fatRef).toFixed(2) : 0,
+        'Critério Match': r.matchMethod || '',
+        'Lançamento BB':  r.txn ? (extrairApelido(r.txn.memo) || r.txn.memo || '') : '',
+        'Data Pagamento': r.txn ? dateStr(r.txn.data) : '',
+        'Meses Pagos':    inadimpl ? `${inadimpl.pagas}/${inadimpl.total}` : '—',
+        'Contato':        r.cli.contato || '',
+      };
+    });
+
+  // Abas filtradas
+  const rowsPendentes   = rowsCompleto.filter(r => r['Status'] === 'Pendente');
+  const rowsDivergentes = rowsCompleto.filter(r => r['Status'] === 'Divergente');
+  const rowsPagos       = rowsCompleto.filter(r => r['Status'] === 'Pago');
+
+  // Resumo
+  const total   = rowsCompleto.length;
+  const pagos   = rowsPagos.length;
+  const pend    = rowsPendentes.length;
+  const div     = rowsDivergentes.length;
+  const vlrFat  = rowsCompleto.reduce((s,r)=>s+(r['Valor Faturar']||0),0);
+  const vlrRec  = rowsCompleto.reduce((s,r)=>s+(r['Valor Pago']||0),0);
+  const vlrPend = rowsPendentes.reduce((s,r)=>s+(r['Valor Faturar']||0),0);
+  const rowsResumo = [
+    { 'Item':'Competência',     'Valor': compLabel },
+    { 'Item':'Total clientes',  'Valor': total },
+    { 'Item':'Pagos',           'Valor': pagos },
+    { 'Item':'Pendentes',       'Valor': pend  },
+    { 'Item':'Divergentes',     'Valor': div   },
+    { 'Item':'Taxa de match',   'Valor': total>0 ? Math.round((pagos+div)/total*100)+'%' : '—' },
+    { 'Item':'Total a faturar', 'Valor': vlrFat  },
+    { 'Item':'Total recebido',  'Valor': vlrRec  },
+    { 'Item':'Total em aberto', 'Valor': vlrPend },
+  ];
+
+  const wb = XLSX.utils.book_new();
+  const wideCol = ws => { ws['!cols'] = [{wch:12},{wch:40},{wch:18},{wch:12},{wch:12},{wch:10},{wch:13},{wch:12},{wch:10},{wch:16},{wch:30},{wch:14},{wch:12},{wch:22}]; };
+
+  const wsResumo      = XLSX.utils.json_to_sheet(rowsResumo);
+  const wsCompleto    = XLSX.utils.json_to_sheet(rowsCompleto.length    ? rowsCompleto    : [{'Info':'Sem dados'}]);
+  const wsPendentes   = XLSX.utils.json_to_sheet(rowsPendentes.length   ? rowsPendentes   : [{'Info':'Nenhum pendente'}]);
+  const wsDivergentes = XLSX.utils.json_to_sheet(rowsDivergentes.length ? rowsDivergentes : [{'Info':'Nenhum divergente'}]);
+  const wsPagos       = XLSX.utils.json_to_sheet(rowsPagos.length       ? rowsPagos       : [{'Info':'Nenhum pago'}]);
+
+  wsResumo['!cols'] = [{wch:22},{wch:18}];
+  wideCol(wsCompleto); wideCol(wsPendentes); wideCol(wsDivergentes); wideCol(wsPagos);
+
+  XLSX.utils.book_append_sheet(wb, wsResumo,      'Resumo');
+  XLSX.utils.book_append_sheet(wb, wsCompleto,    'Resultado Completo');
+  XLSX.utils.book_append_sheet(wb, wsPendentes,   'Pendentes');
+  XLSX.utils.book_append_sheet(wb, wsDivergentes, 'Divergentes');
+  XLSX.utils.book_append_sheet(wb, wsPagos,       'Pagos');
+
+  const data = new Date().toISOString().slice(0,10);
+  XLSX.writeFile(wb, `conciliacao_${compAtiva||'sem-comp'}_${data}.xlsx`);
+  toast(`Excel exportado — ${total} clientes em 5 abas!`, 'ok');
+}
+
+// ══════════════════════════════════════════════════
+// COBRANÇA
+// ══════════════════════════════════════════════════
+function exportarCobranca(tipo){
+  const pendentes=concResult.filter(r=>r.status==='pendente'&&r.fatRef>0);
+  if(!pendentes.length){toast('Nenhum cliente pendente','err');return;}
+  const compLabel=compAtiva?compAtiva.split('-').reverse().join('/'):'';
+
+  // ── Melhoria 3: ordenar por risco (histórico × valor) ──
+  const ordenados = [...pendentes].sort((a,b)=>calcRisco(b)-calcRisco(a));
+
+  if(tipo==='xlsx'){
+    const rows=ordenados.map(r=>{
+      const inadimpl = calcInadimplencia(r.cli.id);
+      return{
+        'Razão Social':r.cli.razao,'CNPJ':r.cli.cnpj||'',
+        'Competência':compLabel,
+        'Mensalidade':r.cob?.mensalidade||r.fatRef,
+        'Excedentes':r.cob?.excedentes||0,
+        'Valor Faturar':r.fatRef,
+        'Meses Pagos':inadimpl?`${inadimpl.pagas}/${inadimpl.total}`:'—',
+        'Score Risco':inadimpl?Math.round(calcRisco(r)):'—',
+        'Contato':r.cli.contato||''
+      };
+    });
+    const ws=XLSX.utils.json_to_sheet(rows);
+    const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Cobrança');
+    XLSX.writeFile(wb,'cobranca_'+(compAtiva||'')+'_'+new Date().toISOString().slice(0,10)+'.xlsx');
+    toast('Excel exportado com ordem de prioridade!','ok');
+  } else {
+    document.getElementById('wpp-list').innerHTML=ordenados.map(r=>{
+      const inadimpl = calcInadimplencia(r.cli.id);
+      // ── Mensagem varia conforme histórico de inadimplência ──
+      let msg;
+      if(!inadimpl || inadimpl.pendentes<=1){
+        // Primeiro atraso — lembrete suave
+        msg=`Olá, ${r.cli.razao}! Passando para lembrar que o pagamento do CIOT${compLabel?' referente a '+compLabel:''} no valor de ${brl(r.fatRef)} ainda consta em aberto. Caso já tenha realizado o pagamento, por favor desconsidere. Qualquer dúvida, estamos à disposição! 😊`;
+      } else {
+        // Reincidente — aviso formal
+        msg=`Prezado(a) ${r.cli.razao}, informamos que identificamos ${inadimpl.pendentes} competência${inadimpl.pendentes>1?'s':''} em aberto em seu cadastro, incluindo ${compLabel}. O valor referente ao CIOT é de ${brl(r.fatRef)}. Solicitamos a regularização no prazo de 5 dias úteis para evitar a interrupção dos serviços. Para pagamento via Pix ou esclarecimentos, entre em contato conosco.`;
+      }
+      const riscoBadge = inadimpl && inadimpl.total>=2
+        ? `<span style="font-size:10px;font-weight:600;padding:1px 7px;border-radius:10px;margin-left:6px;background:${inadimpl.taxa>=90?'var(--green-pill)':inadimpl.taxa>=60?'var(--amber-pill)':'var(--red-pill)'};color:${inadimpl.taxa>=90?'var(--green)':inadimpl.taxa>=60?'var(--amber)':'var(--red)'}">${inadimpl.pagas}/${inadimpl.total} meses</span>`
+        : '';
+      const msgTipo = !inadimpl||inadimpl.pendentes<=1 ? '💬 lembrete suave' : '⚠️ aviso formal';
+      return`<div style="padding:12px 14px;border-bottom:1px solid var(--border);cursor:pointer" onclick="copiarMensagem(this,'${msg.replace(/'/g,"\\'").replace(/\n/g,' ')}')">
+        <div style="font-size:13px;font-weight:500;margin-bottom:2px;display:flex;align-items:center">${r.cli.razao}${riscoBadge}</div>
+        <div style="font-size:11px;color:var(--ink3);margin-bottom:4px">${brl(r.fatRef)}${compLabel?' · '+compLabel:''} · <span style="font-style:italic">${msgTipo}</span></div>
+        <div style="font-size:11px;color:var(--ink2);line-height:1.5;background:var(--surface2);border-radius:6px;padding:8px 10px">${msg}</div>
+        <div style="font-size:10px;color:var(--green);margin-top:4px">👆 Clique para copiar</div>
+      </div>`;
+    }).join('');
+    openModal('modal-whatsapp');
+  }
+}
+
+function copiarMensagem(el,msg){
+  navigator.clipboard.writeText(msg).then(()=>{el.style.background='var(--green-bg)';setTimeout(()=>el.style.background='',1200);toast('Mensagem copiada!','ok');}).catch(()=>toast('Não foi possível copiar','err'));
+}
+
+// ══════════════════════════════════════════════════
+// RESET DE DADOS
+// ══════════════════════════════════════════════════
+function abrirResetDados(){
+  // Limpa estado do modal
+  ['reset-clientes','reset-cobrancas','reset-vinculos','reset-aliases'].forEach(id=>{
+    document.getElementById(id).checked=false;
+  });
+  document.getElementById('reset-confirm-input').value='';
+  document.getElementById('btn-exec-reset').disabled=true;
+  openModal('modal-reset');
+}
+
+async function executarReset(){
+  const delCli     = document.getElementById('reset-clientes').checked;
+  const delCob     = document.getElementById('reset-cobrancas').checked;
+  const delVinc    = document.getElementById('reset-vinculos').checked;
+  const delAliases = document.getElementById('reset-aliases').checked;
+
+  if(!delCli&&!delCob&&!delVinc&&!delAliases){
+    toast('Selecione pelo menos uma opção','err'); return;
+  }
+
+  const btn = document.getElementById('btn-exec-reset');
+  btn.innerHTML='<span class="spinner"></span> Apagando...'; btn.disabled=true;
+
+  try{
+    // Ordem: vínculos → cobranças → clientes (respeita FK)
+    if(delVinc||delCli){
+      await supaDelete('vinculos','created_at=gte.1970-01-01T00:00:00Z');
+      vinculos=[];
+    }
+    if(delCob||delCli){
+      await supaDelete('cobrancas','created_at=gte.1970-01-01T00:00:00Z');
+      cobrancas=[];
+    }
+    if(delCli){
+      await supaDelete('clientes','created_at=gte.1970-01-01T00:00:00Z');
+      clientes=[];
+      document.getElementById('badge-clientes').textContent='0';
+    }
+    if(delAliases&&!delCli){
+      // Zera aliases de todos os clientes em lote — atualiza um por um (Supabase REST não tem UPDATE sem WHERE granular)
+      for(const c of clientes){
+        if((c.aliases||[]).length>0){
+          await supaPatch('clientes',c.id,{aliases:[]});
+          c.aliases=[];
+        }
+      }
+    }
+
+    closeModal('modal-reset');
+    concResult=[];
+    renderHoje();
+    renderClientes();
+    renderMes();
+
+    const msgs=[];
+    if(delCli) msgs.push('clientes');
+    if(delCob&&!delCli) msgs.push('cobranças');
+    if(delVinc&&!delCli) msgs.push('vínculos');
+    if(delAliases&&!delCli) msgs.push('apelidos');
+    toast('✓ Apagado: '+msgs.join(', '),'ok');
+  }catch(e){
+    toast('Erro ao apagar: '+e.message,'err');
+  }
+  btn.innerHTML='🗑 Apagar selecionados'; btn.disabled=false;
+}
+
+// ══════════════════════════════════════════════════
+// DRAG DROP
+// ══════════════════════════════════════════════════
+function setupDrop(){
+  const dzP=document.getElementById('dz-planilha');
+  dzP.addEventListener('dragover',e=>{e.preventDefault();dzP.classList.add('over')});
+  dzP.addEventListener('dragleave',()=>dzP.classList.remove('over'));
+  dzP.addEventListener('drop',e=>{e.preventDefault();dzP.classList.remove('over');const f=e.dataTransfer.files[0];if(!f)return;const inp=dzP.querySelector('input');const dt=new DataTransfer();dt.items.add(f);inp.files=dt.files;importarPlanilha(inp);});
+}
+</script>
+</body>
+</html>
